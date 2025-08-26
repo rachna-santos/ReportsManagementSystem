@@ -1,0 +1,1013 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <title>AccommodationManagement Data Export - Bookingwhizz</title>
+
+<style>
+
+        .small-btn {
+            width: 100px; /* Ya jitni tumhe chahiye */
+        }
+
+        table.dataTable tbody tr td {
+            padding: 4px 8px; /* vertical padding kam kare */
+            line-height: 1.2; /* text spacing kam kare */
+        }
+
+        table.dataTable tbody tr {
+            height: auto; /* fixed height hataye agar lagi ho */
+        }
+
+        /* Full inner grid (rows + columns) */
+            #myTable {
+                border-collapse: collapse !important; /* double borders avoid */
+            }
+
+            #myTable th, #myTable td {
+                border: 1px solid #212529 !important; /* dark lines inside rows */
+            }
+
+            #myTable thead th {
+                border-bottom-width: 2px !important; /* header line a bit thicker */
+            }
+
+
+            .custom-dropdown {
+                display: none;
+                position: absolute;
+                width: 100%;
+                top: 100%;
+                left: 0;
+                z-index: 999;
+                max-height: 200px;
+                overflow-y: auto;
+                border: 1px solid #ccc;
+                background-color: #fff;
+                box-shadow: 0px 4px 8px rgba(0,0,0,0.1);
+                margin-top: 4px;
+                border-radius: 4px;
+            }
+
+            .custom-dropdown .list-group-item {
+                padding: 10px 15px;
+                cursor: pointer;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+                .custom-dropdown .list-group-item:hover {
+                    background-color: #f5f5f5;
+                }
+
+
+            .custom-dropdown .list-group-item {
+                cursor: pointer;
+                padding: 10px 15px;
+            }
+
+                .custom-dropdown .list-group-item:hover {
+                    background-color: #f0f0f0;
+                }
+
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: #1a1a1a;
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .back-button {
+            background: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: background-color 0.2s ease;
+            margin-bottom: 30px;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .back-button:hover {
+            background: #0056b3;
+        }
+
+        .filters-section {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            border: 1px solid #e0e6ed;
+        }
+
+        .filters-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .filter-label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .filter-input {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            transition: border-color 0.2s ease;
+        }
+
+        .filter-input:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+        }
+
+        .filter-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .filter-button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .filter-button.primary {
+            background: #007bff;
+            color: white;
+        }
+
+        .filter-button.primary:hover {
+            background: #0056b3;
+        }
+
+        .filter-button.secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .filter-button.secondary:hover {
+            background: #545b62;
+        }
+
+        .export-section {
+            background: #e8f5e8;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            border-left: 5px solid #1cc88a;
+        }
+
+        .export-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #155724;
+            margin-bottom: 15px;
+        }
+
+        .export-options {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .export-button {
+            background: #1cc88a;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: background-color 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .export-button:hover {
+            background: #17a085;
+        }
+
+        .results-summary {
+            background: #f39c12;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .summary-stats {
+            display: flex;
+            gap: 30px;
+        }
+
+        .summary-stat {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .table-container {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border: 1px solid #e0e6ed;
+        }
+
+        .table-header {
+            background: #1a1a1a;
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .table-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .table-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .search-input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            width: 200px;
+        }
+
+        .pagination-info {
+            color: #ccc;
+            font-size: 0.9rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e0e6ed;
+            font-size: 0.9rem;
+        }
+
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        tr:hover {
+            background: #f1f5f9;
+        }
+
+        .promotion-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: white;
+        }
+
+        .promo-early-bird {
+            background: #1cc88a;
+        }
+
+        .promo-last-minute {
+            background: #e74a3b;
+        }
+
+        .promo-weekend {
+            background: #f39c12;
+        }
+
+        .promo-extended {
+            background: #6f42c1;
+        }
+
+        .promo-seasonal {
+            background: #36b9cc;
+        }
+
+        .promo-loyalty {
+            background: #17a2b8;
+        }
+
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: white;
+        }
+
+        .status-active {
+            background: #1cc88a;
+        }
+
+        .status-expired {
+            background: #6c757d;
+        }
+
+        .status-upcoming {
+            background: #36b9cc;
+        }
+
+        .status-paused {
+            background: #f39c12;
+        }
+
+        .performance-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .performance-bar {
+            width: 60px;
+            height: 8px;
+            background: #e0e6ed;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .performance-fill {
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+
+        .perf-excellent {
+            background: #1cc88a;
+        }
+
+        .perf-good {
+            background: #36b9cc;
+        }
+
+        .perf-average {
+            background: #f39c12;
+        }
+
+        .perf-poor {
+            background: #e74a3b;
+        }
+
+        .amount {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .discount {
+            font-weight: 600;
+            color: #e74a3b;
+        }
+
+        .conversion-rate {
+            font-weight: 600;
+            color: #1cc88a;
+        }
+
+        .pagination {
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8f9fa;
+            border-top: 1px solid #e0e6ed;
+        }
+
+        .pagination-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .pagination-button {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        .pagination-button:hover {
+            background: #f8f9fa;
+        }
+
+        .pagination-button.active {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+
+        .pagination-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        @@media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .filters-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .export-options {
+                flex-direction: column;
+            }
+            
+            .results-summary {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .summary-stats {
+                justify-content: center;
+            }
+            
+            .table-container {
+                overflow-x: auto;
+            }
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h1>AccommodationManagement Data Export</h1>
+            <p>Download detailed promotion performance and booking data with ROI analytics</p>
+        </div>
+
+        <div class="content">
+            <a href="@Url.Action("Index","Home")" class="back-button" style="color:white;">← Back to Main Dashboard</a>
+
+            <div class="filters-section">
+                <div class="filters-title">AccommodationManagement </div>
+                <form method="get" asp-action="AccommodationManagement" asp-controller="Home">
+                <div class="filters-grid">
+                    <div class="filter-group">
+                        <div class="filter-group" style="position: relative;">
+                            <label class="filter-label">AccommodationId</label>
+                            <textarea id="accommodationInput"
+                                      class="form-control"
+                                      placeholder="Search accommodation..."
+                                          name="P_GlobalSearch"
+                                      style="padding:10px; border: 1px solid #ddd; border-radius: 4px; transition: height 0.2s; overflow:hidden; resize: none;"
+                                      rows="1">@ViewBag.getname</textarea>
+
+                             <input type="hidden" id="P_AccommodationIdHidden" name="P_AccommodationId_CHAR" value="@ViewBag.AccommodationId"/>
+                            <ul id="accommodationList" class="list-group custom-dropdown"></ul>
+
+                        </div>
+                    </div>   
+                    
+                     <div class="filter-group">
+                        <label class="filter-label">Search By</label>
+
+                            @{
+                                var selectedValue = ViewBag.P_IsLive?.ToString() ?? "";
+                             }
+
+                          <select class="filter-input" id="ratePlan" name="P_IsLive">
+                                @if (string.IsNullOrEmpty(selectedValue))
+                                {
+                                    <option value="" selected>---All Search---</option>
+                                }
+                                else
+                                {
+                                    <option value="">---All Search---</option>
+                                }
+
+                                @if (selectedValue == "1")
+                                {
+                                    <option value="1" selected>Live Hotel</option>
+                                }
+                                else
+                                {
+                                    <option value="1">Live Hotel</option>
+                                }
+
+                                @if (selectedValue == "0")
+                                {
+                                    <option value="0" selected>Test Hotel</option>
+                                }
+                                else
+                                {
+                                    <option value="0">Test Hotel</option>
+                                }
+                          
+                            </select>
+                    </div>
+                        <div class="filter-group col-4" style="margin-top:25px; padding:3px;">
+                            <button class="filter-button primary small-btn">Search</button>
+                        </div>
+                </div>
+                </form>       
+            </div>
+ 
+            <div class="results-summary">
+                <div class="summary-stats">
+                    <div class="summary-stat">
+                        <div class="stat-value">18</div>
+                        <div class="stat-label">Active Promotions</div>
+                    </div>
+                    <div class="summary-stat">
+                        <div class="stat-value">$287,450</div>
+                        <div class="stat-label">Total Revenue</div>
+                    </div>
+                    <div class="summary-stat">
+                        <div class="stat-value">1,847</div>
+                        <div class="stat-label">Total Bookings</div>
+                    </div>
+                    <div class="summary-stat">
+                        <div class="stat-value">12.8%</div>
+                        <div class="stat-label">Avg Conversion</div>
+                    </div>
+                </div>
+                <div class="pagination-info">
+                    Showing 1-18 of 18 promotions
+                </div>
+            </div>
+
+            <div class="table-container">
+                <div class="table-header">
+                    <div class="table-title">AccommodationManagement</div>
+                    <div class="table-controls">
+                        <input type="text" class="search-input" placeholder="Search AccommodationManagement..." id="searchInput">
+                    </div>
+                </div>
+                <table id="myTable" class="table table-bordered border-dark table-sm">
+                   <thead>
+                        <tr style="font-size:10px;">
+                            <th>AccommodationId</th>
+                            <th>AccommodationName</th>
+                            <th>Country</th>
+                            <th>City</th>
+                            <th>Status</th>
+                            <th>IsLive</th>
+                            <th>Edit</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (ViewBag.livedatashow!=null)
+                        {
+                            foreach (var item in ViewBag.livedatashow)
+                            {
+                                <tr style="font-size:10px;">
+
+                                    <td>@item.AccommodationId</td>
+                                    <td>@item.AccommodationName</td>
+                                    <td>@item.Country</td>
+                                    <td>@item.City</td>
+                                    <td>@item.Status</td>
+                                    <td>@item.IsLive</td>
+                                    <td>
+                                       <a href="javascript:void(0);" onclick="loadCommissionEdit(@item.AccommodationId)" class="btn btn-success" style="font-size:10px;">Edit</a>
+                                    </td>
+                                </tr>
+                            }                            
+                        }         
+                        
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+
+   <script>
+        function applyFilters() {
+            alert('Filters applied! In a real implementation, this would refresh the table with filtered promotion data.');
+        }
+
+        function clearFilters() {
+            document.getElementById('dateFrom').value = '2024-05-01';
+            document.getElementById('dateTo').value = '2024-06-30';
+            document.getElementById('promotionType').value = '';
+            document.getElementById('promotionStatus').value = '';
+            document.getElementById('roomType').value = '';
+            document.getElementById('minDiscount').value = '';
+            document.getElementById('minBookings').value = '';
+            document.getElementById('minRevenue').value = '';
+            document.getElementById('searchInput').value = '';
+        }
+
+        function exportData(format) {
+            const formatNames = {
+                'excel': 'Excel (.xlsx)',
+                'csv': 'CSV (.csv)',
+                'pdf': 'PDF (.pdf)',
+                'roi-report': 'ROI Analysis Report (.pdf)'
+            };
+            
+            alert(`Exporting promotion data to ${formatNames[format]} format. In a real implementation, this would generate and download the file.`);
+        }
+
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const rows = document.querySelectorAll('tbody tr');
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm) ? '' : 'none';
+            });
+        });
+    </script>
+
+</body>
+
+</html>
+
+<!-- Modal -->
+<div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">AccommodationMangement</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form>
+                  <div class="modal-body">
+                        <input type="hidden" id="P_AccommodationId" name="P_AccommodationId_CHAR"/>
+                        <div class="form-group mb-4">
+                            <label class="form-label">Environment</label>
+                            <select id="P_IsLive" name="P_IsLive" class="form-control">
+                                <option value="true">Live</option>
+                                <option value="false">Test</option>
+                            </select>
+                        </div>
+                        <br/>
+                       @* <div class="form-group mb-3">
+                                <label class="form-label">IsLive</label>
+                             <input type="text" id="P_IsLive" name="P_IsLive" class="form-control">
+                        </div>*@
+                  </div>
+
+                    <div class="modal-footer">
+                    <button type="submit" id="saveButton" class="btn btn-primary">Update</button>
+                    </div>
+            </form>
+
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<link rel="stylesheet" href="/lib/datatables/dataTables.bootstrap5.min.css">
+<script src="/lib/jquery/jquery.min.js"></script>
+<script src="/lib/datatables/jquery.dataTables.min.js"></script>
+<script src="/lib/datatables/dataTables.bootstrap5.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<!-- DataTables JS -->
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+
+<script>
+    $(document).ready(function () {
+        let selectedAccommodations = {}; // { id: name }
+        let searchTimer = null;
+        let isProgrammaticUpdate = false; // input handler ko skip karne ke liye
+
+        // Load existing selections from hidden input
+        const preselectedIds = $('#P_AccommodationIdHidden').val();
+        const preselectedNames = $('#accommodationInput').val();
+
+        if (preselectedIds && preselectedNames) {
+            const ids = preselectedIds.split(',');
+            const names = preselectedNames.split(',');
+            ids.forEach((id, index) => {
+                const k = (id || '').trim();
+                const v = (names[index] || '').trim();
+                if (k && v) selectedAccommodations[k] = v;
+            });
+        }
+
+        // Debounced search on input
+        $('#accommodationInput').on('input', function () {
+            if (isProgrammaticUpdate) return; // programmatic set par search mat chalao
+
+            const inputText = $(this).val();
+
+            // ✅ NEW: agar input empty hai to sab clear kar do
+            if (inputText.trim() === "") {
+                selectedAccommodations = {};
+                $('#P_AccommodationIdHidden').val("");
+                $('#accommodationList').hide();
+                return; // aage search mat karo
+            }
+
+            const query = inputText.split(',').pop().trim(); // last token
+
+            clearTimeout(searchTimer);
+
+            if (query.length < 2) {
+                $('#accommodationList').hide();
+                return;
+            }
+
+            searchTimer = setTimeout(() => {
+                $.ajax({
+                    url: '/Home/AccommodationManagement',
+                    type: 'GET',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    data: { P_GlobalSearch: query },
+                    success: function (response) {
+                        const $list = $('#accommodationList');
+                        $list.empty().show();
+
+                        if (Array.isArray(response) && response.length > 0) {
+                            response.forEach(item => {
+                                const id = item.accommodationId || item.id || '';
+                                const name = item.accommodationIdName || item.name || '';
+                                if (!id || !name) return;
+
+                                const isChecked = selectedAccommodations[id] ? 'checked' : '';
+                                $list.append(`
+                                    <li class="list-group-item">
+                                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                                            <input type="checkbox" class="accommodation-checkbox"
+                                                   data-id="${id}"
+                                                   data-name="${name}"
+                                                   ${isChecked} />
+                                            <span>${name}</span>
+                                        </label>
+                                    </li>
+                                `);
+                            });
+                        } else {
+                            $list.append('<li class="list-group-item disabled">No results</li>');
+                        }
+                    }
+                });
+            }, 250); // debounce 250ms
+        });
+
+
+
+        // Checkbox selection (multiple selection allowed)
+        $(document).on('change', '.accommodation-checkbox', function () {
+            const id = $(this).data('id');
+            const name = $(this).data('name');
+
+            if ($(this).is(':checked')) {
+                selectedAccommodations[id] = name;
+            } else {
+                delete selectedAccommodations[id];
+            }
+            updateSelectionDisplay(); // yeh ab input trigger nahi karega
+        });
+
+        function updateSelectionDisplay() {
+            const ids = Object.keys(selectedAccommodations);
+            const names = Object.values(selectedAccommodations);
+
+            $('#P_AccommodationIdHidden').val(ids.join(','));
+
+            // Programmatic set start
+            isProgrammaticUpdate = true;
+            $('#accommodationInput').val(names.join(', '));
+            isProgrammaticUpdate = false;
+            // Programmatic set end
+
+            autoResizeTextarea();
+        }
+
+        // Auto resize textarea
+        function autoResizeTextarea() {
+            const textarea = $('#accommodationInput')[0];
+            if (!textarea) return;
+            textarea.style.height = "auto";
+            textarea.style.height = (textarea.scrollHeight) + "px";
+        }
+
+        // Hide dropdown when clicked outside
+        $(document).on('click', function (e) {
+            if (!$(e.target).closest('#accommodationInput, #accommodationList').length) {
+                $('#accommodationList').hide();
+            }
+        });
+
+        // Enter key se accidental submit roko (optional)
+        $('#accommodationInput').on('keydown', function (e) {
+            if (e.key === 'Enter') e.preventDefault();
+        });
+
+        // Initial resize
+        autoResizeTextarea();
+    });
+</script>
+
+<script>
+    $(document).ready(function () {
+        $('#myTable').DataTable({
+            pageLength: 10,
+            lengthChange: false,     // 👈 "Show entries" dropdown remove karega
+            searching: false,        // 👈 default DataTables search disable karega
+            info: false,              // 👈 "Showing 1 to 10 of X entries" dikhayega
+            paging: true
+        });
+    });
+</script>
+
+@*GetDataEdit*@
+
+<script>
+
+    function loadCommissionEdit(accommodationId) {
+        $.ajax({
+            url: '/Home/Edit',
+            type: 'GET',
+            data: { p_AccommodationId: accommodationId },
+            success: function (data) {
+                if (data) {
+                    $('#P_AccommodationId').val(data.accommodationId);
+
+                    // ✅ Dropdown value set kare
+                    $('#P_IsLive').val(data.isAlive.toString());
+
+                    $('#exampleModal').modal('show');
+                }
+            }
+        });
+    }
+
+
+ 
+    //function loadCommissionEdit(accommodationId) {
+    //    $.ajax({
+    //        url: '/Home/Edit',
+    //        type: 'GET',
+    //        data: {
+    //            p_AccommodationId: accommodationId,           
+    //        },
+    //        success: function (data) {
+    //            if (data) {
+    //                $('#P_AccommodationId').val(data.accommodationId);
+    //                $('input[name="P_IsLive"]').val(data.isAlive);
+    //                $('#exampleModal').modal('show');
+    //            }
+    //        }
+    //    });
+    //}
+</script>
+
+@*UpdateData*@
+
+<script>
+    $('#saveButton').on('click', function (e) {
+        e.preventDefault(); // ⛔ stop form from submitting normally
+        const data = {
+            p_AccommodationId: $('#P_AccommodationId').val(),
+            p_IsLive: $('#P_IsLive').val(),
+        };
+
+        console.log("Sending data: ", data); // ✅ confirm updated values
+
+        $.ajax({
+            url: '/Home/Edit',
+            method: 'POST',
+            data: data,
+            success: function (res) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Updated!',
+                    text: 'Data has been updated successfully.',
+                    showConfirmButton: false,
+                    timer: 2000,
+                    timerProgressBar: true,
+                    toast: false,
+                    position: 'center', // or 'top-end' if you want it like a toast
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                }).then(() => {
+                    location.reload(); // Page will reload after 2 seconds
+                });
+
+            },
+            error: function () {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: 'Something went wrong while updating.',
+                });
+            }
+        });
+    });
+</script>

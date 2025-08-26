@@ -8,7 +8,8 @@ namespace ReportsManagementSystem.Models
         public int BookingId { get; set; }
         public long AccommodationId { get; set; }
 		public DateTime BookingDate { get; set; }
-		public DateTime CheckIn { get; set; }
+        public string AccommodationName { get; set; }	
+        public DateTime CheckIn { get; set; }
 		public DateTime CheckOut { get; set; }
 		public int Nights { get; set; }
 		public string RoomName { get; set; }
@@ -18,7 +19,7 @@ namespace ReportsManagementSystem.Models
 		public decimal Amount { get; set; }
 		public string Country { get; set; }
 		public DateTime Created { get; set; }
-		public byte BookingCurrencyId { get; set; }
+		public string CurrencyName { get; set; }
 		public byte BookingStatusId { get; set; }
 		public string BookingStatus { get; set; }
 		public DateTime CreateDate { get; set; }
