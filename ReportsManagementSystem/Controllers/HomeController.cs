@@ -269,7 +269,7 @@ namespace ReportsManagementSystem.Controllers
                        P_Entity, P_Query)
                        .ToList();
             ViewBag.groups = groups;
-
+           
             var nextId = _context.ReportsGroups.Max(x => (int?)x.ReportGroupId) ?? 0;
             model.ReportGroupId = nextId + 1;
             _context.ReportsGroups.Add(model);

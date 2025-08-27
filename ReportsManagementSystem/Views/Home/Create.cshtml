@@ -389,6 +389,8 @@
             overflow: hidden;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             border: 1px solid #e0e6ed;
+            width:70%;
+            margin: 20px auto;
         }
 
         .table-header {
@@ -605,10 +607,25 @@
                 overflow-x: auto;
             }
         }
+
+        .error-text {
+            color: red;
+            font-size: 0.9em;
+           
+        }
+
+        .is-invalid {
+            border-color: red;
+        }
+
+        .is-valid {
+            border-color: #28a745;
+        }
+       
+        
     </style>
 
 </head>
-
 
 <body>
  
@@ -621,22 +638,24 @@
             <a href="@Url.Action("Index","Home")" class="back-button" style="color:white;">← Back to Main Dashboard</a>
 
             <div class="filters-section">
-                <div class="filters-title">Create Groups</div>
+                @*<div class="filters-title">Create Groups</div>*@
                 <form id="GroupForm" method="post" asp-action="Create" asp-controller="Home">
                     <div class="filters-grid">
                         <div class="filter-group">
                             <label class="filter-label">GroupName</label>
-                            <input asp-for="ReportGroupName" class="filter-input" id="dateFrom">
+                            <input asp-for="ReportGroupName" class="filter-input" id="ReportGroupName">
+                            <div id="nameError" class="error-text"></div>
                         </div>
+                 
 
-                        <div class="filter-group" style="margin-top:25px;">
+                        <div class="filter-group">
                             <button type="submit" id="btnSubmit" class="filter-button primary small-btn">Submit</button>
                         </div>
                     </div>
                 </form>
             </div>
 
-            <div class="results-summary">
+       @*     <div class="results-summary">
                 <div class="summary-stats">
                     <div class="summary-stat">
                         <div class="stat-value">12</div>
@@ -658,16 +677,16 @@
                 <div class="pagination-info">
                     Showing 1-12 of 12 rate plans
                 </div>
-            </div>
+            </div>*@
 
             <div class="table-container">
                 <div class="table-header">
-                    <div class="table-title">Rate Plan Performance Data</div>
+                    <div class="table-title">Show Result</div>
                     <div class="table-controls">
                         <input type="text" class="search-input" placeholder="Search rate plans..." id="searchInput">
                     </div>
                 </div>
-                <table id="myTable" class="table table-bordered border-dark table-sm w-100 align-middle">
+                <table id="myTable" class="table table-striped w-100">
                     <thead>
                         <tr>
                             <th>ReportGroupId</th>
@@ -772,42 +791,64 @@
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const form = document.getElementById('GroupForm');
-        const input = form.querySelector('[name="ReportGroupName"]');
+        const input = document.getElementById('ReportGroupName');
+        const errorBox = document.getElementById('nameError');
 
-        form.addEventListener('submit', function (e) {
-            e.preventDefault(); // hum khud decide karenge submit kab ho
+        // sirf letters/numbers. (space allow karni ho to: /^[A-Za-z0-9 ]+$/)
+        const onlyAlphaNum = /^[A-Za-z0-9]+$/;
 
+        function setError(msg) {
+            errorBox.textContent = msg || "";
+            input.classList.toggle('is-invalid', !!msg);
+            input.classList.toggle('is-valid', !msg && input.value.trim().length > 0);
+        }
+
+        function validateLive() {
             const val = (input.value || '').trim();
-            if (!val) {
-                // EMPTY => error alert + focus
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Required',
-                    text: 'GroupName is Required',
-                    confirmButtonText: 'OK'
-                }).then(() => input.focus());
-                return;
-            }
 
-            // NOT EMPTY => confirm then submit
+            if (!val) {
+                setError("GroupName is required.");
+                return false;
+            }
+            if (!onlyAlphaNum.test(val)) {
+                setError("Format incorrect.");
+                return false;
+            }
+            setError(""); // sab sahi
+            return true;
+        }
+
+        // 🔴 LIVE VALIDATION: type/blur par turant check
+        input.addEventListener('input', validateLive);
+        input.addEventListener('blur', validateLive);
+
+        // ✅ SUBMIT FLOW (sirf valid ho to Swal)
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            if (!validateLive()) return;
+
             Swal.fire({
                 icon: 'question',
                 title: 'Submit now?',
-                text: 'Do you want to create this sub group?',
+                text: 'Do you want to create this group?',
                 showCancelButton: true,
                 confirmButtonText: 'Yes',
                 cancelButtonText: 'Cancel'
             }).then((res) => {
                 if (res.isConfirmed) {
-                    form.submit(); // normal POST to server
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'OK!',
+                        text: 'Submitting...',
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 1200,
+                        timerProgressBar: true
+                    }).then(() => form.submit());
                 }
             });
-
         });
     });
 </script>
-
-
-
-
 
