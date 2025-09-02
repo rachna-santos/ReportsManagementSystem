@@ -388,11 +388,11 @@
             font-size: 0.9rem;
         }
 
-     
+     /*
         tr:hover {
             background: #f1f5f9;
         }
-
+*/
         .rate-plan-badge {
             padding: 4px 8px;
             border-radius: 4px;
@@ -493,13 +493,15 @@
         bool isGroupSubAllSelected = !selectedSubGroupId.HasValue || selectedSubGroupId.Value == 0;
     }
 
-    <div class="container">
+
+   <div class="container">
         <div class="header">
+            <h4>@ViewBag.User</h4>
             <h1>GroupAccommodationMapping</h1>
         </div>
 
         <div class="content">
-            <a href="@Url.Action("Index","Home")" class="back-button" style="color:white;">← Back to Main Dashboard</a>
+             <a href="@Url.Action("Index","Home")" class="back-button" style="color:white;">← Back to Main Dashboard</a>
 
             <div class="filters-section">
                 <div class="filters-title">GroupAccommodationMapping</div>
@@ -508,7 +510,15 @@
                     
                     <div class="filters-grid">
 
-                        <div class="filter-group">
+                        <div class="filter-group" style="position: relative;">
+                            <label class="filter-label" for="accommodationInput">Select Accommodation</label>
+                            <input type="text" id="accommodationInput" value="@ViewBag.getname" class="form-control" placeholder="10656Midway Inn Hotel 123141234" name="p_AccommodationSearch">
+                            <input type="hidden" id="P_AccommodatioIdIdHidden" value="@ViewBag.p_AccommodationId" name="P_AccommodationId">
+                            <ul id="accommodationList" class="list-group dropdown-menu"></ul>
+
+                        </div>
+
+                      @*  <div class="filter-group">
                             <label class="filter-label" for="p_ReportGroupId">GroupName</label>
                             <select class="filter-input" name="p_ReportGroupId" id="RolesGroupsDropdown">
 
@@ -547,17 +557,10 @@
 
                             </select>
                         </div>
-
-                        <div class="filter-group" style="position: relative;">
-                            <label class="filter-label" for="accommodationInput">Select Accommodation</label>
-                            <input type="text" id="accommodationInput" value="@ViewBag.getname" class="form-control" placeholder="10656Midway Inn Hotel 123141234" name="p_AccommodationSearch">
-                            <input type="hidden" id="P_AccommodatioIdIdHidden" value="@ViewBag.p_AccommodationId" name="P_AccommodationId">
-                            <ul id="accommodationList" class="list-group dropdown-menu"></ul>
-
-                        </div>
-
+*@
+                      
                         <div class="form-actions">
-                            <button type="submit" class="filter-button primary">Submit</button>
+                            <button type="submit" class="filter-button primary" style="margin-top:30px;">Submit</button>
                         </div>
 
                     </div>
@@ -600,22 +603,25 @@
                 <table id="myTable" class="table table-bordered border-dark table-sm w-100">
                     <thead>
                         <tr style="font-size:10px;">
+                            <th>AccommodationName</th>
                             <th>ReportGroupName</th>
                             <th>ReportSubGroupName</th>
-                            <th>AccommodationName</th>  
                             <th>IsMapped</th>
                           
                         </tr>
+
                     </thead>
+
                     <tbody>
                         @if (ViewBag.showmapping != null)
                         {
                             foreach (var item in ViewBag.showmapping)
                             {
                                 <tr style="font-size:10px;">
+                                    <td>@item.AccommodationName</td>
                                     <td>@item.ReportGroupName</td>
                                     <td>@item.ReportSubGroupName</td>
-                                    <td>@item.AccommodationName</td>                                  
+                                                                 
                                     <td>
 
                                         <button type="button"
@@ -936,7 +942,12 @@
                     $('#accommodationList').empty();
 
                     if (Array.isArray(response) && response.length > 0) {
-                        $('#accommodationList').show();
+
+                         $('#accommodationList').show();
+
+                        $('#accommodationList').append(
+                            '<li class="list-groups-item" data-id="">All Accommodation</li>'
+                        );
                         response.forEach(function (item) {
                             $('#accommodationList').append('<li class="list-group-item" data-id="' + item.accommodationId + '">' + item.accommodationIdName + '</li>');
                         });
@@ -992,7 +1003,7 @@
 
  </script>
 
-<script>
+ <script>
     document.getElementById('exampleModal').addEventListener('show.bs.modal', function (event) {
         const button = event.relatedTarget; // jis button se modal open hua
 

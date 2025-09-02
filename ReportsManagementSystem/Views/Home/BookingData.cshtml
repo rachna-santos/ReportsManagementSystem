@@ -524,8 +524,9 @@
             bool isGroupSubAllSelected = !selectedSubGroupId.HasValue || selectedSubGroupId.Value == 0;
         }
 
-    <div class="container">
+        <div class="container">
             <div class="header">
+            <h4>@ViewBag.User</h4>
                 <h1>Booking Data Export</h1>
                 <p>Download historical booking data with advanced filtering and export options</p>
             </div>
@@ -557,7 +558,6 @@
                                 </select>
 
                             </div>
-
                                 <div class="filter-group">
                                 <label class="filter-label" for="p_ReportSubGroupId">SubGroupName</label>
                                 <select class="filter-input" name="p_ReportSubGroupId" id="RoleGroupCombinedDropdown">
@@ -585,7 +585,7 @@
                                               placeholder="Search accommodation..."
                                               name="p_AccommodationSearch"
                                               style="padding:10px; border: 1px solid #ddd; border-radius: 4px; transition: height 0.2s; overflow:hidden; resize: none;"
-                                              rows="1">@ViewBag.getname</textarea>
+                                    rows="1">@ViewBag.getname</textarea>
 
                                             <input type="hidden" id="P_AccommodationIdHidden" name="P_AccommodationId_CHAR" value="@ViewBag.AccommodationId" />
 
@@ -713,8 +713,7 @@
                     </div>
                 </div>
 
-                <div class="results-summary">
-                
+                <div class="results-summary">               
                         <div class="summary-stats">
                             <div class="summary-stat">
                             <div class="stat-value">@ViewBag.TotalBookings</div>
@@ -740,7 +739,7 @@
                         </div>
 
                     <div class="pagination-info">
-                        Showing 1-50 of 2,847 results
+                    <button class="btn btn-success">summary</button>
                     </div>
                 </div>
 
@@ -751,8 +750,7 @@
                             <input type="text" class="search-input" placeholder="Search bookings..." id="searchInput">
                         </div>
                     </div>
-
-               
+         
                     <table id="myTable">
                     <thead>
                         <tr>
@@ -803,7 +801,6 @@
                         }
                     </tbody>
 
-
                 </table>               
 
             </div>
@@ -850,8 +847,6 @@
     </html>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  @*  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>*@
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
     <!-- DataTables JS -->
@@ -871,7 +866,6 @@
     <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
     <!-- omit the datatables .css -->
     <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
-
 
 
 <script>
@@ -912,14 +906,14 @@
 
             clearTimeout(searchTimer);
 
-            if (query.length < 2) {
-                $('#accommodationList').hide();
-                return;
-            }
+            //if (query.length < 2) {
+            //    $('#accommodationList').hide();
+            //    return;
+            //}
 
             searchTimer = setTimeout(() => {
                 $.ajax({
-                    url: '/Home/AccommodationManagement',
+                    url: '/Home/GetAccommodation',
                     type: 'GET',
                     headers: { 'X-Requested-With': 'XMLHttpRequest' },
                     data: { P_GlobalSearch: query },
@@ -1046,82 +1040,87 @@
                 $('#accommodationList').hide();
             }
         });
-    </script>
+</script>
 
 <script>
-   
     $(function () {
         $('#myTable').DataTable({
-            // layout: only table + (info + pagination) row
-            dom: 't<"d-flex justify-content-between align-items-center mt-3"ip>',
             pageLength: 10,
-            searching: false,    // hides default search box
-            paging: true,    
-            scrollX: true,        // keeps horizontal scroll without breaking layout
-            ordering: true,
-           
+            order: [[1, 'desc']],
+            responsive: true,
+            deferRender: true,
 
+            // HIDE THESE:
+            searching: false,      // no search box
+            lengthChange: false,   // no "Show entries"
+
+            // layout: table + info + pagination at bottom only
+            dom: 't<"dt-bottom"ip>',
+            // agar info line bhi nahi chahiye:
+            // info: false, dom: 'tp'
         });
     });
 </script>
 
 <script>
-        // Helper: visible/filtered rows ke DOM se plain text nikalo (no <span>)
-        function getCleanRows(dt) {
-            const nodes = dt.rows({ search: 'applied' }).nodes().toArray();
-            return nodes.map(tr => Array.from(tr.cells).map(td => td.textContent.trim()));
+    // Helper: visible/filtered rows ke DOM se plain text nikalo (no <span>)
+    function getCleanRows(dt) {
+        const nodes = dt.rows({ search: 'applied' }).nodes().toArray();
+        return nodes.map(tr => Array.from(tr.cells).map(td => td.textContent.trim()));
+    }
+
+    function exportDataToExcel() {
+        const dt = $('#myTable').DataTable();
+
+        // headers (text only)
+        const headers = $('#myTable thead th').map(function () {
+            return $(this).text().trim();
+        }).get();
+
+        // rows (clean text; no HTML)
+        const rows = getCleanRows(dt);
+
+        // array-of-arrays (AOA) -> worksheet
+        const aoa = [headers, ...rows];
+        const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+        // workbook -> file
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+
+        const fileName = 'table_export_' + new Date().toISOString().slice(0, 10) + '.xlsx';
+        XLSX.writeFile(wb, fileName);
+    }
+
+    function exportDataToCSV() {
+        const dt = $('#myTable').DataTable();
+
+        const headers = $('#myTable thead th').map(function () {
+            return csvEscape($(this).text().trim());
+        }).get();
+
+        // rows from DOM (clean) + CSV escaping
+        const rows = getCleanRows(dt).map(r => r.map(csvEscape));
+
+        const lines = [headers.join(','), ...rows.map(r => r.join(','))].join('\r\n');
+        const blob = new Blob([lines], { type: 'text/csv;charset=utf-8;' });
+
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'table_export_' + new Date().toISOString().slice(0, 10) + '.csv';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        function csvEscape(v) {
+            v = (v ?? '').toString().replace(/\r?\n/g, ' ').trim();
+            if (/[",]/.test(v)) v = `"${v.replace(/"/g, '""')}"`;
+            return v;
         }
+    }
+</script>
 
-        function exportDataToExcel() {
-            const dt = $('#myTable').DataTable();
 
-            // headers (text only)
-            const headers = $('#myTable thead th').map(function () {
-                return $(this).text().trim();
-            }).get();
-
-            // rows (clean text; no HTML)
-            const rows = getCleanRows(dt);
-
-            // array-of-arrays (AOA) -> worksheet
-            const aoa = [headers, ...rows];
-            const ws = XLSX.utils.aoa_to_sheet(aoa);
-
-            // workbook -> file
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
-
-            const fileName = 'table_export_' + new Date().toISOString().slice(0, 10) + '.xlsx';
-            XLSX.writeFile(wb, fileName);
-        }
-
-        function exportDataToCSV() {
-            const dt = $('#myTable').DataTable();
-
-            const headers = $('#myTable thead th').map(function () {
-                return csvEscape($(this).text().trim());
-            }).get();
-
-            // rows from DOM (clean) + CSV escaping
-            const rows = getCleanRows(dt).map(r => r.map(csvEscape));
-
-            const lines = [headers.join(','), ...rows.map(r => r.join(','))].join('\r\n');
-            const blob = new Blob([lines], { type: 'text/csv;charset=utf-8;' });
-
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = 'table_export_' + new Date().toISOString().slice(0, 10) + '.csv';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-
-            function csvEscape(v) {
-                v = (v ?? '').toString().replace(/\r?\n/g, ' ').trim();
-                if (/[",]/.test(v)) v = `"${v.replace(/"/g, '""')}"`;
-                return v;
-            }
-        }
-    </script>
 
 @*<script>
     $(document).ready(function () {

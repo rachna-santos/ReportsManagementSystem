@@ -1,0 +1,306 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>Bookingwhizz || login</title>
+
+    <style>
+
+        body {
+            height: 100%;
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+            background-color: #f2f6fc;
+        }
+ 
+            .login-wrapper {
+            display: flex;
+            height: 100vh;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 1s ease;
+            position: relative;
+            }
+ 
+            .login-wrapper {
+            position: absolute;
+            right: 0px;
+            top: 0;
+            height: 100%;
+            width: 100%;
+            background: url(../images/login-background.jpg) no-repeat right top;
+            content: "";
+            background-size: cover;
+            bottom: 0;
+            margin: auto;
+            border-radius: 0px;
+            }
+ 
+            .login-box {
+            display: flex;
+            width: 100%;
+            max-width: 1100px;
+            background-color: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.08);
+            }
+ 
+            .image-side {
+            background-color: #eaf3ff;
+            width: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            animation: slideInLeft 1s ease;
+            padding: 0px;
+            }
+ 
+            .image-side img {
+            max-width: 100%;
+            height: auto;
+            }
+ 
+            .form-side {
+             width: 50%;
+            padding: 3rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            animation: slideInRight 1s ease;
+            }
+ 
+            .form-side img.logo {
+            height: 50px;
+            margin-bottom: 1rem;
+            }
+ 
+            .form-side h4 {
+            color: var(--primary-blue);
+            font-weight: 600;
+            }
+ 
+            .form-control {
+            border-radius: 12px;
+            padding-left: 2.5rem;
+            background-color: #eef5ff;
+            border: 1px solid #d0d7e0;
+            }
+ 
+            .form-group {
+            position: relative;
+            margin-bottom: 1.5rem;
+            }
+ 
+            .form-group i {
+            position: absolute;
+            top: 50%;
+            left: 15px;
+            transform: translateY(-50%);
+            color: #6c757d;
+            }
+ 
+            .btn-yellow {
+            background-color: #007bff;
+            color: #fff;
+            font-weight: 600;
+            border-radius: 12px;
+            padding: 0.75rem;
+            border: none;
+            }
+ 
+            .form-control:focus {
+            border-color: #0045A5 !important;
+            /* BookingWhizz Blue */
+            box-shadow: 0 0 0 0.2rem rgba(0, 69, 165, 0.25);
+            background-color: #e6f0ff;
+            /* Light blue background on focus */
+            outline: none;
+            }
+ 
+            .btn-yellow:focus,
+            .btn-yellow:active {
+            background-color: #0045A5 !important;
+            box-shadow: 0 0 0 0.2rem rgba(244, 194, 65, 0.4);
+            outline: none;
+            }
+ 
+            .btn-yellow:hover {
+            background-color: #0056b3;
+            color: #fff;
+            }
+ 
+            @@media (max-width: 768px) {
+            .login-box {
+            flex-direction: column;
+            border-radius: 0;
+            margin: 0 15px;
+            }
+ 
+            .image-side {
+                display: none;
+                background-color: #eaf3ff;
+                width: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 2rem;
+                animation: slideInLeft 1s ease;
+                padding: 0px;
+            }
+ 
+            .form-side {
+            width: 100%;
+            padding: 2rem;
+            }
+ 
+            .login-wrapper {
+            position: absolute;
+            right: 0px;
+            top: 0;
+            height: 100%;
+            width: 100%;
+            background: url("images/login-background.jpg") no-repeat right top;
+            content: "";
+            background-size: cover;
+            bottom: 0;
+            margin: auto;
+            border-radius: 0px;
+            }
+            }
+ 
+            /* Animations */
+            @@keyframes fadeIn {
+            from {
+            opacity: 0;
+            }
+ 
+            to {
+            opacity: 1;
+            }
+            }
+ 
+            @@keyframes slideInLeft {
+            from {
+            transform: translateX(-50px);
+            opacity: 0;
+            }
+ 
+            to {
+            transform: translateX(0);
+            opacity: 1;
+            }
+            }
+ 
+            @@keyframes slideInRight {
+            from {
+            transform: translateX(50px);
+            opacity: 0;
+            }
+ 
+            to {
+            transform: translateX(0);
+            opacity: 1;
+            }
+            }
+
+        .image-side img {
+            max-width: 100%;
+            /* height: auto; */
+            /* height: 100%; */
+            height: 100%;
+            object-fit: cover;
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <div class="login-wrapper">
+        <div class="login-box">
+            <!-- Left CRM Illustration -->
+            <div class="image-side img-fluid">
+                <img src="https://cdn-cchkmpj.nitrocdn.com/CJXGnJvCvbQYOSNVvxpLvOYcHhpJDKbH/assets/images/optimized/rev-0d49871/ossisto.com/wp-content/uploads/2023/11/What-are-Agency-Client-Reporting-Tools.webp" alt="CRM Illustration" />
+            </div>
+
+            <!-- Right Login Form -->
+            <div class="form-side">
+                <div class="text-center mb-4">
+                    <img src="https://websitedemo.bookingwhizz.com/crm-v3/images/booking-new.png" alt="BookingWhizz Logo" class="logo">
+                    <h4 style="color:#0056b3;">Welcome to BookingWhizz</h4>
+                </div>
+                <form method="post" asp-action="Login" asp-controller="Account" id="loginForm">
+                    <div class="form-group">
+                        <i class="bi bi-envelope"></i>
+                        <input type="email" class="form-control" id="email" name="P_LoginId" placeholder="you@example.com">
+                        <small id="emailError" class="text-danger"></small>
+                        <span style="color:red;font-size:12px;">@ViewBag.email</span>
+                        <span style="color:red;font-size:12px;">@ViewBag.twofield</span>
+                        <span style="color:red;font-size:12px;">@ViewBag.EmailError</span>
+                    </div>           
+                    <div class="form-group">
+                        <i class="bi bi-lock"></i>
+                        <input type="password" class="form-control" id="password" name="P_Password" placeholder="********">
+                        <small id="passwordError" class="text-danger"></small>
+
+                        <span style="color:red;font-size:12px;">@ViewBag.password</span>
+                        <span style="color:red;font-size:12px;">@ViewBag.PasswordError</span>
+                        <span style="color:red;font-size:12px;">@ViewBag.twofield2</span>
+                    </div>
+                    <br />
+                    <div class="d-grid">
+                        <input type="submit" value="Sign In" class="btn btn-yellow text-center"/>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </div>
+
+</body>
+
+</html>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<script>
+    function validateForm() {
+        var email = document.getElementById("email").value;
+        var password = document.getElementById("password").value;
+        var emailError = document.getElementById("emailError");
+        var passwordError = document.getElementById("passwordError");
+        var valid = true;
+
+        // Clear previous error messages
+        emailError.innerHTML = "";
+        passwordError.innerHTML = "";
+
+        // Validate email
+        if (email === "") {
+            emailError.innerHTML = "Email is required.";
+            valid = false;
+        } else if (!validateEmail(email)) {
+            emailError.innerHTML = "Please enter a valid email address.";
+            valid = false;
+        }
+
+        // Validate password
+        if (password === "") {
+            passwordError.innerHTML = "Password is required.";
+            valid = false;
+        }
+
+        //	// Return false to prevent form submission if validation fails
+        //	return valid;
+        //}
+
+        //function validateEmail(email) {
+        //	// Simple email regex to validate the format
+        //	var re = /^[^\s@@]+@@[^\s@@]+\.[^\s@@]+$/;
+        //	return re.test(String(email).toLowerCase());
+    }
+</script>

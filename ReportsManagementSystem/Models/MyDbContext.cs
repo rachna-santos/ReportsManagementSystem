@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using LogManagementSystem.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace ReportsManagementSystem.Models
 {
@@ -8,7 +9,9 @@ namespace ReportsManagementSystem.Models
 		{
                 
         }
-		public DbSet<BookingsData> bookingsDatas { get; set; }
+
+        public DbSet<Users> Users { get; set; }
+        public DbSet<BookingsData> bookingsDatas { get; set; }
         public DbSet<GetAccommodation> getAccommodations { get; set; }
         public DbSet<GetResources> getResources { get; set; }
         public DbSet<GetBookingStatus> bookingStatuses { get; set; }
@@ -45,6 +48,7 @@ namespace ReportsManagementSystem.Models
           .HasNoKey();
             modelBuilder.Entity<ListAccommodationMapping>()
             .HasNoKey();
+
 
             modelBuilder.Entity<ReportsGroups>(e =>
             {

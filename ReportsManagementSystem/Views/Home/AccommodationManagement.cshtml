@@ -354,9 +354,9 @@
             z-index: 10;
         }
 
-        tr:hover {
+       /* tr:hover {
             background: #f1f5f9;
-        }
+        }*/
 
         .promotion-badge {
             padding: 4px 8px;
@@ -541,11 +541,13 @@
 
     <div class="container">
         <div class="header">
+            <h4>@ViewBag.User</h4>
             <h1>AccommodationManagement Data Export</h1>
             <p>Download detailed promotion performance and booking data with ROI analytics</p>
         </div>
 
         <div class="content">
+
             <a href="@Url.Action("Index","Home")" class="back-button" style="color:white;">← Back to Main Dashboard</a>
 
             <div class="filters-section">
@@ -561,14 +563,13 @@
                                           name="P_GlobalSearch"
                                       style="padding:10px; border: 1px solid #ddd; border-radius: 4px; transition: height 0.2s; overflow:hidden; resize: none;"
                                       rows="1">@ViewBag.getname</textarea>
-
-                             <input type="hidden" id="P_AccommodationIdHidden" name="P_AccommodationId_CHAR" value="@ViewBag.AccommodationId"/>
+                            <input type="hidden" id="P_AccommodationIdHidden" name="P_AccommodationId_CHAR" value="@ViewBag.AccommodationId"/>
                             <ul id="accommodationList" class="list-group custom-dropdown"></ul>
 
                         </div>
-                    </div>   
-                    
-                     <div class="filter-group">
+                    </div>
+                                              
+                         <div class="filter-group">
                         <label class="filter-label">Search By</label>
 
                             @{
@@ -605,6 +606,7 @@
                           
                             </select>
                     </div>
+
                         <div class="filter-group col-4" style="margin-top:25px; padding:3px;">
                             <button class="filter-button primary small-btn">Search</button>
                         </div>
@@ -651,7 +653,7 @@
                             <th>Country</th>
                             <th>City</th>
                             <th>Status</th>
-                            <th>IsLive</th>
+                           
                             <th>Edit</th>
                         </tr>
                     </thead>
@@ -667,10 +669,30 @@
                                     <td>@item.Country</td>
                                     <td>@item.City</td>
                                     <td>@item.Status</td>
-                                    <td>@item.IsLive</td>
+
                                     <td>
-                                       <a href="javascript:void(0);" onclick="loadCommissionEdit(@item.AccommodationId)" class="btn btn-success" style="font-size:10px;">Edit</a>
+                                        <a href="javascript:void(0);"
+                                           class="btn live-btn @(item.IsLive == "Test" ? "btn-danger" : "btn-success")"
+                                           data-id="@item.AccommodationId"
+                                           data-live="@(item.IsLive == "Test" ? "0" : "1")"
+                                           style="font-size:10px;"
+                                           onclick="openEditModal(this)">
+                                            @(item.IsLive == "Test" ? "NotLive" : "Live")
+                                        </a>
                                     </td>
+
+                                 @*   <td>
+                            
+                                        <a href="javascript:void(0);"
+                                           class="btn live-btn @(item.IsLive=="Test"?"btn-danger":"btn-success")"
+                                           data-id="@item.AccommodationId"
+                                           data-live="@(item.IsLive == "Test" ? "0" : "1")"
+                                           onclick="openEditModal(@item.AccommodationId, @(item.IsLive=="Test"?"false":"true"))"
+                                           style="font-size:10px;">
+                                                @(item.IsLive == "Test" ? "NotLive" : "Live")
+                                        </a>
+                                    
+                                    </td>*@
                                 </tr>
                             }                            
                         }         
@@ -726,35 +748,28 @@
 </html>
 
 <!-- Modal -->
-<div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+
+
+<!-- Place this OUTSIDE the GET form -->
+<div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="exampleModalLabel">AccommodationMangement</h5>
+                <h5 class="modal-title">Update Live Status</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form>
-                  <div class="modal-body">
-                        <input type="hidden" id="P_AccommodationId" name="P_AccommodationId_CHAR"/>
-                        <div class="form-group mb-4">
-                            <label class="form-label">Environment</label>
-                            <select id="P_IsLive" name="P_IsLive" class="form-control">
-                                <option value="true">Live</option>
-                                <option value="false">Test</option>
-                            </select>
-                        </div>
-                        <br/>
-                       @* <div class="form-group mb-3">
-                                <label class="form-label">IsLive</label>
-                             <input type="text" id="P_IsLive" name="P_IsLive" class="form-control">
-                        </div>*@
-                  </div>
-
-                    <div class="modal-footer">
-                    <button type="submit" id="saveButton" class="btn btn-primary">Update</button>
-                    </div>
-            </form>
-
+            <div class="modal-body">
+                <input type="hidden" id="M_AccommodationId">
+                <label>Is Live?</label>
+                <select id="M_IsLive" name="P_IsLive" class="form-control">
+                    <option value="1">Live</option>
+                    <option value="0">Test</option>
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button id="saveButton" type="button" class="btn btn-primary">Save</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
         </div>
     </div>
 </div>
@@ -816,10 +831,10 @@
 
             clearTimeout(searchTimer);
 
-            if (query.length < 2) {
-                $('#accommodationList').hide();
-                return;
-            }
+            //if (query.length < 2) {
+            //    $('#accommodationList').hide();
+            //    return;
+            //}
 
             searchTimer = setTimeout(() => {
                 $.ajax({
@@ -857,8 +872,6 @@
                 });
             }, 250); // debounce 250ms
         });
-
-
 
         // Checkbox selection (multiple selection allowed)
         $(document).on('change', '.accommodation-checkbox', function () {
@@ -970,6 +983,64 @@
 @*UpdateData*@
 
 <script>
+    // OPEN MODAL: current status button se padho
+    function openEditModal(el) {
+        const id = el.getAttribute('data-id');
+        const liveVal = el.getAttribute('data-live'); // "1" or "0"
+
+        document.getElementById('M_AccommodationId').value = id;
+        document.getElementById('M_IsLive').value = (liveVal === '1') ? '1' : '0';
+
+        const modalEl = document.getElementById('editModal');
+        bootstrap.Modal.getOrCreateInstance(modalEl).show(); // BS5
+    }
+
+    // SAVE (AJAX) – UI ko turant update kare
+    $('#saveButton').on('click', function (e) {
+        e.preventDefault();
+
+        const id = $('#M_AccommodationId').val();
+        const isLive = $('#M_IsLive').val() === '1';
+
+        $.ajax({
+            url: '/Home/Edit',
+            method: 'POST',
+            data: { p_AccommodationId: id, P_IsLive: isLive },
+            success: function (res) {
+                // Expect: { success: true, accommodationId: 6092, isLive: true/false }
+                if (!res || res.success !== true) {
+                    Swal.fire({ icon: 'error', title: 'Error!', text: 'Update failed.' });
+                    return;
+                }
+
+                // Button update (text, color, data-live) — IMPORTANT
+                updateLiveButton(res.accommodationId, !!res.isLive);
+
+                // Modal close
+                bootstrap.Modal.getInstance(document.getElementById('editModal'))?.hide();
+
+                Swal.fire({ icon: 'success', title: 'Updated!', timer: 1200, showConfirmButton: false });
+            },
+            error: function () {
+                Swal.fire({ icon: 'error', title: 'Error!', text: 'Something went wrong while updating.' });
+            }
+        });
+    });
+
+    function updateLiveButton(id, isLive) {
+        const $btn = $('.live-btn[data-id="' + id + '"]');
+        if ($btn.length === 0) return;
+
+        $btn
+            .removeClass('btn-success btn-danger')
+            .addClass(isLive ? 'btn-success' : 'btn-danger')
+            .text(isLive ? 'Live' : 'NotLive')
+            .attr('data-live', isLive ? '1' : '0'); // <-- so next open shows correct option
+    }
+</script>
+
+
+@*<script>
     $('#saveButton').on('click', function (e) {
         e.preventDefault(); // ⛔ stop form from submitting normally
         const data = {
@@ -1010,4 +1081,4 @@
             }
         });
     });
-</script>
+</script>*@

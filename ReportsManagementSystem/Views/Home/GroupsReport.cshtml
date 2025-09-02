@@ -11,6 +11,19 @@
     <title>Groups and SubGroups - Bookingwhizz</title>
 
     <style>
+        @@keyframes flash {
+            0% {
+                background: #e6ffed;
+            }
+
+            100% {
+                background: transparent;
+            }
+        }
+
+        tr.flash-added {
+            animation: flash 1.2s ease-in-out;
+        }
         .filters-section {
             background: #fff;
             border: 1px solid #e5e7eb;
@@ -445,9 +458,9 @@
             z-index: 10;
         }
 
-        tr:hover {
+       /* tr:hover {
             background: #f1f5f9;
-        }
+        }*/
 
         .rate-plan-badge {
             padding: 4px 8px;
@@ -609,8 +622,8 @@
 
 </head>
 
-
 <body>
+
     @{
         int? selectedGroupId = ViewBag.p_ReportGroupId as int?;
         bool isGroupAllSelected = !selectedGroupId.HasValue || selectedGroupId.Value == 0;
@@ -619,9 +632,9 @@
         bool isGroupSubAllSelected = !selectedSubGroupId.HasValue || selectedSubGroupId.Value == 0;
     }
 
-
-    <div class="container">
+     <div class="container">
         <div class="header">
+            <h4>@ViewBag.User</h4>
             <h1>Groups and SubGroups</h1>
         </div>
 
@@ -631,8 +644,7 @@
             <div class="filters-section">
                 <div class="filters-title">Add Groups and SubGroups</div>
                 <form id="groupsForm" method="post" asp-action="GroupsReport" asp-controller="Home">
-                    @Html.AntiForgeryToken()
-
+                   
                     <div class="filters-grid">
                         <div class="filter-group">
                             <label class="filter-label" for="p_ReportGroupId">GroupName</label>
@@ -674,12 +686,11 @@
                         </div>
 
                         <div class="filter-group" style="margin-top:25px;">
-                            <button type="submit" id="btnSubmit" class="filter-button primary small-btn" disabled>Submit</button>
+                            <button type="button" id="btnSubmit" class="filter-button primary small-btn" disabled>Submit</button>
                         </div>
                     </div>
                 </form>
             </div>
-
 
             <div class="results-summary">
                 <div class="summary-stats">
@@ -712,7 +723,7 @@
                         <input type="text" class="search-input" placeholder="Search rate plans..." id="searchInput">
                     </div>
                 </div>
-                <table id="myTable" class="table table-bordered border-dark table-sm w-100 align-middle">
+                <table id="myTable" class="table table-striped w-100">
                     <thead>
                         <tr>
                             <th>ReportGroupId</th>
@@ -738,6 +749,7 @@
                     </tbody>
                 </table>           
             </div>
+
         </div>
     </div>
 
@@ -781,10 +793,8 @@
     </script>
 
 </body>
-
 </html>
 
-<link rel="stylesheet" href="/lib/datatables/dataTables.bootstrap5.min.css">
 <script src="/lib/jquery/jquery.min.js"></script>
 <script src="/lib/datatables/jquery.dataTables.min.js"></script>
 <script src="/lib/datatables/dataTables.bootstrap5.min.js"></script>
@@ -797,63 +807,109 @@
 <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css">
 <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
 <!-- omit the datatables .css -->
 <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
-    $(document).ready(function () {
-        // Optional: button enable
-        $('#RolesGroupsDropdown, #RoleGroupCombinedDropdown').on('change', function () {
-            $('#btnSubmit').prop('disabled', false);
-        });
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('groupsForm');
+        const btn = document.getElementById('btnSubmit');
+        const ddlG = document.getElementById('RolesGroupsDropdown');
+        const ddlS = document.getElementById('RoleGroupCombinedDropdown');
+        const tbody = document.getElementById('myTableBody');
 
-        $("#groupsForm").on("submit", function (e) {
-            e.preventDefault();
-            var form = $(this);
+        const esc = (s) => { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML; };
 
-            $.ajax({
-                url: form.attr("action"),
-                type: "POST",
-                data: form.serialize(),           // Anti-forgery token field se chala jayega
-                dataType: "json",                 // Server se JSON expect kar rahe
-                cache: false,                     // Old response cache na ho
-                success: function (data) {
-                    var rows = "";
-                    if (Array.isArray(data) && data.length > 0) {
-                        data.forEach(function (item) {
-                            rows += `
-                  <tr style="font-size:10px;">
-                    <td>${item.reportGroupId ?? ""}</td>
-                    <td>${item.reportGroupName ?? ""}</td>
-                    <td>${item.reportSubGroupId ?? ""}</td>
-                    <td>${item.reportSubGroupName ?? ""}</td>
-                  </tr>`;
-                        });
+        function toggleBtn() { btn.disabled = !(ddlG.value && ddlS.value); }
+        ddlG.addEventListener('change', toggleBtn);
+        ddlS.addEventListener('change', toggleBtn);
+        toggleBtn();
+
+        btn.addEventListener('click', async function () {
+            if (btn.disabled) return;
+
+            // Confirm: Yes / Cancel
+            const { isConfirmed } = await Swal.fire({
+                title: 'Confirm?',
+                text: 'do you want to insert data?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Yes',
+                cancelButtonText: 'Cancel',
+                //reverseButtons: true,
+                //allowOutsideClick: false
+            });
+            if (!isConfirmed) {
+                Swal.fire({
+                    toast: true, position: 'bottom-end',
+                    icon: 'info', title: 'Cancelled',
+                    showConfirmButton: false, timer: 1600, timerProgressBar: true
+                });
+                return;
+            }
+
+            // Proceed with POST (no loading modal)
+            const tokenInput = form.querySelector('input[name="__RequestVerificationToken"]');
+            const token = tokenInput ? tokenInput.value : null;
+            const fd = new FormData(form);
+
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(form.action, {
+                    method: 'POST',
+                    headers: {
+                        ...(token ? { 'RequestVerificationToken': token } : {}),
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: fd
+                });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const data = await res.json();
+
+                // Original toast
+                Swal.fire({
+                    toast: true, position: 'bottom-end',
+                    icon: data.success ? 'success' : 'error',
+                    title: data.message || (data.success ? 'Success' : 'Failed'),
+                    showConfirmButton: false, timer: 2200, timerProgressBar: true
+                });
+
+                if (data.success) {
+                    // Table update (same as before)
+                    const gId = ddlG.value;
+                    const gTxt = ddlG.options[ddlG.selectedIndex]?.text || '';
+                    const sId = ddlS.value;
+                    const sTxt = ddlS.options[ddlS.selectedIndex]?.text || '';
+
+                    if (window.jQuery && jQuery.fn.dataTable && jQuery('#myTable').hasClass('dataTable')) {
+                        const dt = jQuery('#myTable').DataTable();
+                        dt.row.add([gId, gTxt, sId, sTxt]).draw(false);
                     } else {
-                        rows = `<tr><td colspan="4" class="text-center">No data found</td></tr>`;
+                        const tr = document.createElement('tr');
+                        tr.style.fontSize = '10px';
+                        tr.innerHTML = `
+                            <td>${esc(gId)}</td>
+                            <td>${esc(gTxt)}</td>
+                            <td>${esc(sId)}</td>
+                            <td>${esc(sTxt)}</td>`;
+                        tbody.prepend(tr);
                     }
 
-                    $("#myTableBody").html(rows);
-
-                    // SweetAlert
-                    Swal.fire({
-                        title: "Success!",
-                        text: "Data loaded without page refresh.",
-                        icon: "success",
-                        timer: 1500,
-                        showConfirmButton: false
-                    });
-                },
-                error: function (xhr) {
-                    Swal.fire("Error!", "Something went wrong.", "error");
-                    // Debug help (optional):
-                    // console.log(xhr.responseText);
+                    // Optional: form.reset(); toggleBtn();
                 }
-            });
+            } catch (e) {
+                Swal.fire({
+                    toast: true, position: 'bottom-end',
+                    icon: 'error', title: 'Error', text: e.message,
+                    showConfirmButton: false, timer: 3000
+                });
+            } finally {
+                toggleBtn();
+            }
         });
     });
 </script>
@@ -879,6 +935,8 @@
 
             // Make AJAX call only if RoleId is selected
             if (groupId) {
+                // Suppose ye AJAX call aapka insert/save ke liye hai
+             
                 $.ajax({
                     url: '/Home/SelectGroup', // Make sure this matches your controller's action
                     type: 'GET',
@@ -925,4 +983,5 @@
         toggleSubmitButton();
     });
 </script>
+
 

@@ -9,6 +9,14 @@ builder.Services.AddControllersWithViews();
 var configuration = builder.Configuration;
 string connectionString = configuration.GetConnectionString("default");
 builder.Services.AddDbContext<MyDbContext>(c => c.UseSqlServer(connectionString));
+
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(10);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -21,7 +29,7 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
-
+app.UseSession();
 app.UseRouting();
 
 app.UseAuthorization();

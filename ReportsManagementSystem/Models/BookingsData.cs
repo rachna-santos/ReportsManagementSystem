@@ -12,8 +12,8 @@ namespace ReportsManagementSystem.Models
         public DateTime CheckIn { get; set; }
 		public DateTime CheckOut { get; set; }
 		public int Nights { get; set; }
-		public string RoomName { get; set; }
-		public string RatePlanName { get; set; }
+		public string? RoomName { get; set; }
+		public string? RatePlanName { get; set; }
 		public string Source { get; set; }
 		public string Status { get; set; }
 		public decimal Amount { get; set; }

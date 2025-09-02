@@ -11,6 +11,11 @@
     <title>Groups and SubGroups - Bookingwhizz</title>
 
     <style>
+
+        #myTable tbody td {
+            vertical-align: middle;
+            left: 50%;
+        }
         
         .filters-section {
             background: #fff;
@@ -70,7 +75,7 @@
         }
 
             .filter-input:focus, .form-control:focus {
-                border-color: #6366f1;
+                border-color: #007bff;
                 box-shadow: 0 0 0 3px rgba(99,102,241,0.2);
             }
 
@@ -104,7 +109,7 @@
             padding: 0 20px;
             border: none;
             border-radius: 6px;
-            background: #6366f1;
+            background: #007bff;
             color: #fff;
             font-weight: 600;
             cursor: pointer;
@@ -112,7 +117,7 @@
         }
 
             .filter-button.primary.small-btn:hover:not(:disabled) {
-                background: #4f46e5;
+                background: #007bff;
                 box-shadow: 0 4px 12px rgba(99,102,241,.3);
             }
 
@@ -129,9 +134,6 @@
             display: flex;
             justify-content: flex-end;
         }
-
-
-
 
         .filter-button:disabled {
             background-color: #ccc !important; /* light grey background */
@@ -390,8 +392,8 @@
             overflow: hidden;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             border: 1px solid #e0e6ed;
-            width: 70%;
-            margin: 20px auto;
+            /*width: 70%;
+            margin: 20px auto;*/
         }
 
         .table-header {
@@ -448,9 +450,9 @@
             z-index: 10;
         }
 
-        tr:hover {
+       /* tr:hover {
             background: #f1f5f9;
-        }
+        }*/
 
         .rate-plan-badge {
             padding: 4px 8px;
@@ -621,6 +623,163 @@
         .is-valid {
             border-color: #28a745;
         }
+
+
+        /* layout */
+        .container {
+            max-width: 1100px;
+        }
+
+        .filters-section {
+            background: #f8f9fb;
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 18px;
+        }
+
+        .filters-grid {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 16px;
+            align-items: end;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        /* inputs */
+        .filter-label {
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: #394150;
+        }
+
+        .filter-input, .search-input {
+            width: 100%;
+            height: 44px;
+            padding: 10px 12px;
+            border: 1px solid #d9dee5;
+            border-radius: 10px;
+            background: #fff;
+            transition: border-color .2s, box-shadow .2s;
+        }
+
+            .filter-input:focus, .search-input:focus {
+                outline: 0;
+                border-color: #7b83ff;
+                box-shadow: 0 0 0 3px rgba(123,131,255,.2);
+            }
+
+        /* buttons (keeps your IDs/classes) */
+        .filter-button.primary.small-btn,
+        #btnSubmit {
+            padding: 10px 18px;
+            border-radius: 10px;
+            border: 0;
+            background: #7b83ff;
+            color: #fff;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform .05s ease, box-shadow .2s ease, background .2s;
+        }
+
+            #btnSubmit:hover {
+                background: #6a73ff;
+                box-shadow: 0 6px 18px rgba(123,131,255,.35);
+            }
+
+            #btnSubmit:active {
+                transform: translateY(1px);
+            }
+
+        /* errors */
+        .error-text, span.field-validation-error {
+            color: #d33;
+            font-size: .86rem;
+        }
+
+        /* table/card */
+        .table-container {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .table-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px;
+            background: #0f172a;
+            color: #fff;
+        }
+
+        .table-title {
+            font-weight: 700;
+        }
+
+        .table-controls {
+            width: 260px;
+        }
+
+        .search-input::placeholder {
+            color: #98a2b3;
+        }
+
+        /* table styling (works with Bootstrap .table) */
+        #myTable {
+            margin: 0;
+            font-size: 0.95rem;
+        }
+
+            #myTable thead th {
+                background: #f2f4f7;
+                color: #263043;
+                font-weight: 700;
+                border-bottom: 1px solid #e9ecef;
+            }
+
+            #myTable tbody td {
+                vertical-align: middle;
+            }
+
+           
+
+        /* responsive */
+        @@media (max-width: 640px) {
+            .filters-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .table-controls {
+                width: 100%;
+                margin-top: 10px;
+            }
+
+            .table-header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
+            }
+        }
+
+        .filter-group {
+            position: relative;
+        }
+
+        .error-text, span.field-validation-error {
+            position: absolute;
+            bottom: -18px; /* show just below input */
+            left: 0;
+            font-size: 0.85rem;
+            color: #d33;
+        }
+
     </style>
 
 </head>
@@ -630,6 +789,7 @@
 
     <div class="container">
         <div class="header">
+            <h4>@ViewBag.User</h4>
             <h1>Create SubGroup</h1>
         </div>
 
@@ -643,8 +803,9 @@
                     <div class="filters-grid">
                         <div class="filter-group">
                             <label class="filter-label">SubGroupName</label>
-                            <input asp-for="ReportSubGroupName" class="filter-input" id="ReportGroupName">
+                            <input asp-for="ReportSubGroupName" class="filter-input" id="ReportSubGroupName">
                             <div id="nameError" class="error-text"></div>
+                         
                         </div>
 
                         <div class="filter-group">
@@ -691,10 +852,9 @@
                         <tr>
                             <th>ReportSubGroupId</th>
                             <th>ReportSubGroupName</th>
-
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="groupsBody">
 
                         @if (ViewBag.subgroups != null)
                         {
@@ -778,6 +938,217 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
+    // global instance
+    var groupsDT;
+
+    $(function () {
+        if ($.fn.dataTable.isDataTable('#myTable')) {
+            groupsDT = $('#myTable').DataTable(); // reuse
+        } else {
+            groupsDT = $('#myTable').DataTable({
+                scrollX: true,
+                pageLength: 10,
+                lengthChange: false,
+                searching: false,   // aap apna custom search use kar rahe ho
+                info: false,
+                paging: true,
+                stateSave: true,
+                deferRender: true,
+                order: [[0, 'desc']] // naya id top par dikhe (optional)
+            });
+        }
+
+
+    });
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('subGroupForm');
+        const input = document.getElementById('ReportSubGroupName');
+        const errorBox = document.getElementById('nameError');
+        const tbody = document.getElementById('groupsBody'); // ✅ tbody by ID
+        const btn = document.getElementById('btnSubmit');
+
+        function setError(msg) { errorBox.textContent = msg || ""; }
+
+        // ✅ Ab sirf empty string block hogi; special characters allowed
+        function validateLive() {
+            const v = (input.value || '').trim();
+            if (!v) { setError('GroupSubName is required.'); return false; }
+            setError('');
+            return true;
+        }
+        input.addEventListener('input', validateLive);
+        input.addEventListener('blur', validateLive);
+
+        // ✅ DataTables-safe add (fallback me XSS-safe insertion)
+        function appendRow(item) {
+            const id = item.reportSubGroupId ?? item.ReportSubGroupId ?? '';
+            const name = item.reportSubGroupName ?? item.ReportSubGroupName ?? '';
+
+            if (window.groupsDT) {
+                groupsDT.row.add([id, name]).draw(false);   // false => current page par hi raho
+                groupsDT.columns.adjust().draw(false);      // scrollX ke saath safe
+            } else {
+                // Fallback (agar DT load na ho) — textContent se safe insertion
+                const tr = document.createElement('tr');
+                tr.style.fontSize = '10px';
+
+                const tdId = document.createElement('td');
+                tdId.textContent = id;
+
+                const tdName = document.createElement('td');
+                tdName.textContent = name;
+
+                tr.appendChild(tdId);
+                tr.appendChild(tdName);
+                tbody.prepend(tr);
+            }
+        }
+
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            if (!validateLive()) return;
+
+            Swal.fire({
+                icon: 'question',
+                title: 'Submit now?',
+                text: 'Do you want to insert Subgroup?',
+                showCancelButton: true,
+                confirmButtonText: 'Yes',
+                cancelButtonText: 'Cancel'
+            }).then(async (res) => {
+                if (!res.isConfirmed) return;
+
+                btn.disabled = true; btn.textContent = 'Saving…';
+
+                try {
+                    const fd = new FormData(form);
+                    const token = form.querySelector('input[name="__RequestVerificationToken"]')?.value;
+
+                    const resp = await fetch(form.action, {
+                        method: 'POST',
+                        body: fd,
+                        headers: token ? { 'RequestVerificationToken': token } : {}
+                    });
+
+                    // If server sends non-2xx with JSON, try to parse; otherwise throw
+                    let data;
+                    try { data = await resp.json(); } catch { data = null; }
+
+                    if (resp.ok && data?.success && data?.item) {
+                        appendRow(data.item); // 🔥 pagination par bhi row persist rahega
+                        form.reset();
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Inserted successfully',
+                            timer: 1200,
+                            showConfirmButton: false,
+                            toast: true,
+                            position: 'top-end'
+                        });
+                    } else {
+                        const msg = (data && (data.message || data.error)) || `Failed to save (status ${resp.status}).`;
+                        Swal.fire({ icon: 'error', title: 'Error', text: msg });
+                    }
+                } catch (err) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Network error',
+                        text: err?.message || 'Something went wrong.'
+                    });
+                } finally {
+                    btn.disabled = false; btn.textContent = 'Submit';
+                }
+            });
+        });
+    });
+</script>
+
+
+@*<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('subGroupForm');
+        const input = document.getElementById('ReportSubGroupName');
+        const errorBox = document.getElementById('nameError');
+        const tbody = document.getElementById('groupsBody'); // ✅ tbody by ID
+        const btn = document.getElementById('btnSubmit');
+
+        const onlyAlphaNum = /^[A-Za-z0-9 ]+$/;
+
+        function setError(msg) { errorBox.textContent = msg || ""; }
+        function validateLive() {
+            const v = (input.value || '').trim();
+            if (!v) { setError('GroupSubName is required.'); return false; }
+            if (!onlyAlphaNum.test(v)) { setError('Format incorrect.'); return false; }
+            setError(''); return true;
+        }
+        input.addEventListener('input', validateLive);
+        input.addEventListener('blur', validateLive);
+
+        // ✅ DataTables-safe add
+        function appendRow(item) {
+            const id = item.reportSubGroupId ?? item.ReportSubGroupId;
+            const name = item.reportSubGroupName ?? item.ReportSubGroupName;
+
+            if (window.groupsDT) {
+                groupsDT.row.add([id, name]).draw(false);   // false => current page par hi raho
+                groupsDT.columns.adjust().draw(false);      // scrollX ke saath safe
+            } else {
+                // fallback (agar DT load na ho)
+                const tr = document.createElement('tr');
+                tr.style.fontSize = '10px';
+                tr.innerHTML = `<td>${id}</td><td>${name}</td>`;
+                tbody.prepend(tr);
+            }
+        }
+
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            if (!validateLive()) return;
+
+            Swal.fire({
+                icon: 'question',
+                title: 'Submit now?',
+                text: 'Do you want to insert Subgroup?',
+                showCancelButton: true,
+                confirmButtonText: 'Yes',
+                cancelButtonText: 'Cancel'
+            }).then(async (res) => {
+                if (!res.isConfirmed) return;
+
+                btn.disabled = true; btn.textContent = 'Saving…';
+
+                try {
+                    const fd = new FormData(form);
+                    const token = form.querySelector('input[name="__RequestVerificationToken"]')?.value;
+
+                    const resp = await fetch(form.action, {
+                        method: 'POST',
+                        body: fd,
+                        headers: token ? { 'RequestVerificationToken': token } : {}
+                    });
+                    const data = await resp.json();
+
+                    if (data?.success && data?.item) {
+                        appendRow(data.item);      // 🔥 pagination par bhi row persist rahega
+                        form.reset();
+                        Swal.fire({ icon: 'success', title: 'insert data successfully', timer: 1200, showConfirmButton: false, toast: true, position: 'top-end' });
+                    } else {
+                        Swal.fire({ icon: 'error', title: 'Error', text: data?.message || 'Failed to save.' });
+                    }
+                } catch (err) {
+                    Swal.fire({ icon: 'error', title: 'SubGroup Already Exits', text: err?.message || 'Something went wrong.' });
+                } finally {
+                    btn.disabled = false; btn.textContent = 'Submit';
+                }
+            });
+        });
+    });
+</script>*@
+
+@*<script>
     $(document).ready(function () {
         $('#myTable').DataTable({
             scrollX: true,
@@ -788,71 +1159,8 @@
             paging: true
         });
     });
-</script>
+</script>*@
 
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const form = document.getElementById('subGroupForm');
-        const input = form.querySelector('[name="ReportSubGroupName"]');
-        const errorBox = document.getElementById('nameError');
-
-        // sirf letters/numbers. (space allow karni ho to: /^[A-Za-z0-9 ]+$/)
-        const onlyAlphaNum = /^[A-Za-z0-9]+$/;
-
-        function setError(msg) {
-            errorBox.textContent = msg || "";
-            input.classList.toggle('is-invalid', !!msg);
-            input.classList.toggle('is-valid', !msg && input.value.trim().length > 0);
-        }
-
-        function validateLive() {
-            const val = (input.value || '').trim();
-
-            if (!val) {
-                setError("SubGroupName is required.");
-                return false;
-            }
-            if (!onlyAlphaNum.test(val)) {
-                setError("Format incorrect.");
-                return false;
-            }
-            setError(""); // sab sahi
-            return true;
-        }
-
-        // 🔴 LIVE VALIDATION: type/blur par turant check
-        input.addEventListener('input', validateLive);
-        input.addEventListener('blur', validateLive);
-
-        // ✅ SUBMIT FLOW (sirf valid ho to Swal)
-        form.addEventListener('submit', function (e) {
-            e.preventDefault();
-            if (!validateLive()) return;
-
-            Swal.fire({
-                icon: 'question',
-                title: 'Submit now?',
-                text: 'Do you want to create this sub group?',
-                showCancelButton: true,
-                confirmButtonText: 'Yes',
-                cancelButtonText: 'Cancel'
-            }).then((res) => {
-                if (res.isConfirmed) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'OK!',
-                        text: 'Submitting...',
-                        toast: true,
-                        position: 'top-end',
-                        showConfirmButton: false,
-                        timer: 1200,
-                        timerProgressBar: true
-                    }).then(() => form.submit());
-                }
-            });
-        });
-    });
-</script>
 
 
 
