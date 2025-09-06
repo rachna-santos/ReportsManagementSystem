@@ -12,7 +12,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing.Printing;
 using System.Text;
-using Microsoft.Data.SqlClient;
 using System.Threading.Tasks;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
@@ -178,12 +177,37 @@ namespace ReportsManagementSystem.Controllers
         ")
                     .ToList();
 
-                ViewBag.TotalBookings = bookingData.Any() ? bookingData.First().TotalBookings : 0;
-                ViewBag.TotalRevenue = bookingData.Any() ? bookingData.First().TotalRevenue : 0;
-                ViewBag.totalnight = bookingData.Any() ? bookingData.First().TotalNights : 0;
-                ViewBag.AverageBookingRate = bookingData.Any() ? bookingData.First().AverageBookingRate : 0;
-                ViewBag.Average = bookingData.Any() ? bookingData.First().AverageRate : 0;
+
+                ViewBag.Bookings = bookingData.Any() ? bookingData.First().PDF_TotalBookings : 0;
+                ViewBag.Revenues = bookingData.Any() ? bookingData.First().PDF_TotalRevenue : 0;
+                ViewBag.night = bookingData.Any() ? bookingData.First().PDF_TotalNights : 0;
+                ViewBag.BookingRate = bookingData.Any() ? bookingData.First().PDF_AverageBookingRate : 0;
+                ViewBag.Averages = bookingData.Any() ? bookingData.First().PDF_AverageRate : 0;
+                var row = bookingData.FirstOrDefault();
+
+                ViewBag.Averages = row?.PDF_AverageRate ?? 0;
+                ViewBag.AccommodationName = row?.AccommodationName ?? "—";
+
+                // Agar SP se booking date aa raha hai (jaise PDF_BookingDate)
+                if (row?.BookingDate is DateTime d && d != default)
+                {
+                    ViewBag.BookingDateText = d.ToString("dd-MMM-yyyy");
+                }
+                else
+                {
+                    // warna range dikha do
+                    ViewBag.BookingDateText = $"{P_BookingStartDate:dd-MMM-yyyy} – {P_BookingEndDate:dd-MMM-yyyy}";
+                }
+
+                ViewBag.TotalBookings = bookingData.Any() ? bookingData.First().Grand_TotalBookings : 0;
+                ViewBag.TotalRevenue = bookingData.Any() ? bookingData.First().Grand_TotalRevenue : 0;
+                ViewBag.totalnight = bookingData.Any() ? bookingData.First().Grand_TotalNights : 0;
+                ViewBag.AverageBookingRate = bookingData.Any() ? bookingData.First().Grand_AverageBookingRate : 0;
+                ViewBag.Average = bookingData.Any() ? bookingData.First().Grand_AverageRate : 0;
                 ViewBag.bookingData = bookingData;
+
+            
+             
             }
             else if (searchfilter == 2 && P_CheckInStartDate.HasValue && P_CheckInEndDate.HasValue)
             {
@@ -204,12 +228,19 @@ namespace ReportsManagementSystem.Controllers
         ")
                     .ToList();
 
-                ViewBag.TotalBookings = bookingData.Any() ? bookingData.First().TotalBookings : 0;
-                ViewBag.TotalRevenue = bookingData.Any() ? bookingData.First().TotalRevenue : 0;
-                ViewBag.totalnight = bookingData.Any() ? bookingData.First().TotalNights : 0;
-                ViewBag.AverageBookingRate = bookingData.Any() ? bookingData.First().AverageBookingRate : 0;
-                ViewBag.Average = bookingData.Any() ? bookingData.First().AverageRate : 0;
+                ViewBag.TotalBookings = bookingData.Any() ? bookingData.First().Grand_TotalBookings : 0;
+                ViewBag.TotalRevenue = bookingData.Any() ? bookingData.First().Grand_TotalRevenue : 0;
+                ViewBag.totalnight = bookingData.Any() ? bookingData.First().Grand_TotalNights : 0;
+                ViewBag.AverageBookingRate = bookingData.Any() ? bookingData.First().Grand_AverageBookingRate : 0;
+                ViewBag.Average = bookingData.Any() ? bookingData.First().Grand_AverageRate : 0;
                 ViewBag.bookingData = bookingData;
+
+
+                ViewBag.Bookings = bookingData.Any() ? bookingData.First().PDF_TotalBookings : 0;
+                ViewBag.Revenues = bookingData.Any() ? bookingData.First().PDF_TotalRevenue : 0;
+                ViewBag.night = bookingData.Any() ? bookingData.First().PDF_TotalNights : 0;
+                ViewBag.BookingRate = bookingData.Any() ? bookingData.First().PDF_AverageBookingRate : 0;
+                ViewBag.Averages = bookingData.Any() ? bookingData.First().PDF_AverageRate : 0;
             }
             else if (searchfilter == 3 && P_CheckOutStartDate.HasValue && P_CheckOutEndDate.HasValue)
             {
@@ -230,13 +261,21 @@ namespace ReportsManagementSystem.Controllers
         ")
                     .ToList();
 
-                ViewBag.TotalBookings = bookingData.Any() ? bookingData.First().TotalBookings : 0;
-                ViewBag.TotalRevenue = bookingData.Any() ? bookingData.First().TotalRevenue : 0;
-                ViewBag.totalnight = bookingData.Any() ? bookingData.First().TotalNights : 0;
-                ViewBag.AverageBookingRate = bookingData.Any() ? bookingData.First().AverageBookingRate : 0;
-                ViewBag.Average = bookingData.Any() ? bookingData.First().AverageRate : 0;
+                ViewBag.TotalBookings = bookingData.Any() ? bookingData.First().Grand_TotalBookings : 0;
+                ViewBag.TotalRevenue = bookingData.Any() ? bookingData.First().Grand_TotalRevenue : 0;
+                ViewBag.totalnight = bookingData.Any() ? bookingData.First().Grand_TotalNights : 0;
+                ViewBag.AverageBookingRate = bookingData.Any() ? bookingData.First().Grand_AverageBookingRate : 0;
+                ViewBag.Average = bookingData.Any() ? bookingData.First().Grand_AverageRate : 0;
                 ViewBag.bookingData = bookingData;
+
+
+                ViewBag.Bookings = bookingData.Any() ? bookingData.First().PDF_TotalBookings : 0;
+                ViewBag.Revenues = bookingData.Any() ? bookingData.First().PDF_TotalRevenue : 0;
+                ViewBag.night = bookingData.Any() ? bookingData.First().PDF_TotalNights : 0;
+                ViewBag.BookingRate = bookingData.Any() ? bookingData.First().PDF_AverageBookingRate : 0;
+                ViewBag.Averages = bookingData.Any() ? bookingData.First().PDF_AverageRate : 0;
             }
+
 
             //if (searchfilter == 1 && ((string.IsNullOrEmpty(P_AccommodationId_CHAR) || !string.IsNullOrEmpty(P_AccommodationId_CHAR)) && P_BookingStartDate.HasValue && P_BookingEndDate.HasValue && (!string.IsNullOrEmpty(P_BookingSource) || P_BookingStatusId > 0) && ((p_ReportGroupId ?? 0) > 0 || (p_ReportSubGroupId ?? 0) > 0)))
             //{
@@ -471,7 +510,6 @@ namespace ReportsManagementSystem.Controllers
             _context.SaveChanges();
             return Json(new { success = true, item = new { reportSubGroupId = model.ReportSubGroupId, reportSubGroupName = model.ReportSubGroupName } });
         }
-
         [HttpGet]
         public JsonResult Edit(long p_AccommodationId)
         {

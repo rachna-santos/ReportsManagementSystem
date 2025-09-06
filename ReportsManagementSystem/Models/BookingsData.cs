@@ -24,11 +24,18 @@ namespace ReportsManagementSystem.Models
 		public string BookingStatus { get; set; }
 		public DateTime CreateDate { get; set; }
 		public byte StatusId { get; set; }
-        public int TotalBookings { get; set; }
-        public int TotalNights { get; set; }
-        public decimal TotalRevenue { get; set; }
-        public decimal AverageRate { get; set; }
-        public decimal AverageBookingRate { get; set; }
+        public int Grand_TotalBookings { get; set; }
+        public int Grand_TotalNights { get; set; }
+        public decimal Grand_TotalRevenue { get; set; }
+        public decimal Grand_AverageRate { get; set; }
+        public decimal Grand_AverageBookingRate { get; set; }
+
+        public int PDF_TotalBookings { get; set; }
+        public int PDF_TotalNights { get; set; }
+        public decimal PDF_TotalRevenue { get; set; }
+        public decimal PDF_AverageRate { get; set; }
+        public decimal PDF_AverageBookingRate { get; set; }
+
 
     }
 }

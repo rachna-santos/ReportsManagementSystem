@@ -1,4 +1,7 @@
 ﻿    @model IEnumerable<ReportsManagementSystem.Models.BookingsData>
+    @using Newtonsoft.Json;
+
+
     <!DOCTYPE html>
     <html lang="en">
 
@@ -9,6 +12,8 @@
         <title>Booking Data Export - Bookingwhizz</title>
 
     <style>
+
+       
         
         .back-button {
             background: #007bff;
@@ -150,9 +155,18 @@
         .export-button:hover {
             background: #17a085;
         }
-
+        /* .results-summary {
+                    background: #36b9cc;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }*/
         .results-summary {
-            background: #36b9cc;
+            background: #3396D3;
             color: white;
             padding: 20px;
             border-radius: 8px;
@@ -525,288 +539,292 @@
         }
 
         <div class="container">
-            <div class="header">
-            <h4>@ViewBag.User</h4>
-                <h1>Booking Data Export</h1>
-                <p>Download historical booking data with advanced filtering and export options</p>
-            </div>
+                <div class="header">
+                <h4>@ViewBag.User</h4>
+                    <h1>Booking Data Export</h1>
+                    <p>Download historical booking data with advanced filtering and export options</p>
+                </div>
 
-            <div class="content">
-            <a href="@Url.Action("Index","Home")" class="back-button" style="color:white;">← Back to Main Dashboard</a>
+                <div class="content">
 
-                <div class="filters-section">
-                    <div class="filters-title">Filter Booking Data</div>
-                    <form method="get" asp-action="BookingData" asp-controller="Home">
-                        <div class="filters-grid">
+                    <a href="@Url.Action("Index","Home")" class="back-button" style="color:white;">← Back to Main Dashboard</a>
 
-                                <div class="filter-group">
-                                <label class="filter-label" for="p_ReportGroupId">GroupName</label>
-                                <select class="filter-input" name="p_ReportGroupId" id="RolesGroupsDropdown">
+                    <div class="filters-section">
+                        <div class="filters-title">Filter Booking Data</div>
+                        <form method="get" asp-action="BookingData" asp-controller="Home">
+                            <div class="filters-grid">
 
-                                    <option value="" select="@(isGroupAllSelected ? "selected" : null)">---SelectGroup---</option>
+                                    <div class="filter-group">
+                                    <label class="filter-label" for="p_ReportGroupId">GroupName</label>
+                                    <select class="filter-input" name="p_ReportGroupId" id="RolesGroupsDropdown">
 
-                                    @if (ViewBag.groups != null)
-                                    {
-                                        foreach (var item in ViewBag.groups)
+                                        <option value="" select="@(isGroupAllSelected ? "selected" : null)">---SelectGroup---</option>
+
+                                        @if (ViewBag.groups != null)
                                         {
-                                            <option value="@item.ReportGroupId"
-                                                    selected="@(item.ReportGroupId == (ViewBag.p_ReportGroupId as int?) ? "selected" : null)">
-                                                @item.ReportGroupName
-                                            </option>
+                                            foreach (var item in ViewBag.groups)
+                                            {
+                                                <option value="@item.ReportGroupId"
+                                                        selected="@(item.ReportGroupId == (ViewBag.p_ReportGroupId as int?) ? "selected" : null)">
+                                                    @item.ReportGroupName
+                                                </option>
+                                            }
                                         }
-                                    }
-                                </select>
+                                    </select>
 
-                            </div>
-                                <div class="filter-group">
-                                <label class="filter-label" for="p_ReportSubGroupId">SubGroupName</label>
-                                <select class="filter-input" name="p_ReportSubGroupId" id="RoleGroupCombinedDropdown">
+                                </div>
+                                    <div class="filter-group">
+                                    <label class="filter-label" for="p_ReportSubGroupId">SubGroupName</label>
+                                    <select class="filter-input" name="p_ReportSubGroupId" id="RoleGroupCombinedDropdown">
 
-                                    <option value="" select="@(isGroupSubAllSelected ? "selected" : null)">---SelectSubGroup---</option>
+                                        <option value="" select="@(isGroupSubAllSelected ? "selected" : null)">---SelectSubGroup---</option>
 
-                                    @if (ViewBag.subgroups != null)
-                                    {
-                                        foreach (var item in ViewBag.subgroups)
+                                        @if (ViewBag.subgroups != null)
                                         {
-                                            <option value="@item.ReportSubGroupId"
-                                                    selected="@(item.ReportSubGroupId == (ViewBag.p_ReportSubGroupId as int?) ? "selected" : null)">
-                                                @item.ReportSubGroupName
-                                            </option>
+                                            foreach (var item in ViewBag.subgroups)
+                                            {
+                                                <option value="@item.ReportSubGroupId"
+                                                        selected="@(item.ReportSubGroupId == (ViewBag.p_ReportSubGroupId as int?) ? "selected" : null)">
+                                                    @item.ReportSubGroupName
+                                                </option>
+                                            }
                                         }
-                                    }
 
-                                </select>
-                            </div>
-
-                                <div class="filter-group" style="position: relative;">
-                                    <label class="filter-label">AccommodationId</label>
-                                    <textarea id="accommodationInput"
-                                              class="form-control"
-                                              placeholder="Search accommodation..."
-                                              name="p_AccommodationSearch"
-                                              style="padding:10px; border: 1px solid #ddd; border-radius: 4px; transition: height 0.2s; overflow:hidden; resize: none;"
-                                    rows="1">@ViewBag.getname</textarea>
-
-                                            <input type="hidden" id="P_AccommodationIdHidden" name="P_AccommodationId_CHAR" value="@ViewBag.AccommodationId" />
-
-                                            <ul id="accommodationList" class="list-group custom-dropdown"></ul>                   
+                                    </select>
                                 </div>
 
-                                <div class="filter-group">
-                                    <label class="filter-label">DateTypes</label>
-                                        @{
-                                            var selectedValue = ViewBag.searchfilter?.ToString();
-                                        }
+                                    <div class="filter-group" style="position: relative;">
+                                        <label class="filter-label">AccommodationId</label>
+                                        <textarea id="accommodationInput"
+                                                  class="form-control"
+                                                  placeholder="Search accommodation..."
+                                                  name="p_AccommodationSearch"
+                                                  style="padding:10px; border: 1px solid #ddd; border-radius: 4px; transition: height 0.2s; overflow:hidden; resize: none;"
+                                        rows="1">@ViewBag.getname</textarea>
 
-                                    <select class="filter-input" id="ratePlan" name="searchfilter">
-                                        @if (string.IsNullOrEmpty(selectedValue))
-                                        {
-                                        <option value="" disabled selected>---All Search---</option>
-                                        }
-                                        else
-                                        {
-                                            <option value="">---All Search---</option>
-                                        }
+                                                <input type="hidden" id="P_AccommodationIdHidden" name="P_AccommodationId_CHAR" value="@ViewBag.AccommodationId" />
 
-                                        @if (selectedValue == "1")
-                                        {
-                                            <option value="1" selected>Create Date</option>
-                                        }
-                                        else
-                                        {
-                                            <option value="1">Create Date</option>
-                                        }
+                                                <ul id="accommodationList" class="list-group custom-dropdown"></ul>                   
+                                    </div>
 
-                                        @if (selectedValue == "2")
-                                        {
-                                            <option value="2" selected>Check in</option>
-                                        }
-                                        else
-                                        {
-                                            <option value="2">Check in</option>
-                                        }
+                                    <div class="filter-group">
+                                        <label class="filter-label">DateTypes</label>
+                                            @{
+                                                var selectedValue = ViewBag.searchfilter?.ToString();
+                                            }
 
-                                        @if (selectedValue == "3")
-                                        {
-                                            <option value="3" selected>Check out</option>
-                                        }
-                                        else
-                                        {
-                                            <option value="3">Check out</option>
-                                        }
-                                    </select>                           
-                                </div>
+                                        <select class="filter-input" id="ratePlan" name="searchfilter">
+                                            @if (string.IsNullOrEmpty(selectedValue))
+                                            {
+                                            <option value="" disabled selected>---All Search---</option>
+                                            }
+                                            else
+                                            {
+                                                <option value="">---All Search---</option>
+                                            }
 
-                                <div class="filter-group">
-                                    <label class="filter-label">StartDate</label>
-                                <input type="date" class="filter-input" id="dateFrom" value="@(ViewBag.P_StartDate != null ? ((DateTime)ViewBag.P_StartDate).ToString("yyyy-MM-dd") : "")" name="P_StartDate">
-                                </div>
+                                            @if (selectedValue == "1")
+                                            {
+                                                <option value="1" selected>Create Date</option>
+                                            }
+                                            else
+                                            {
+                                                <option value="1">Create Date</option>
+                                            }
 
-                                <div class="filter-group">
-                                    <label class="filter-label">EndDate</label>
-                                <input type="date" class="filter-input" id="dateTo" value="@(ViewBag.P_EndDate!= null ? ((DateTime)ViewBag.P_EndDate).ToString("yyyy-MM-dd") : "")" name="P_EndDate">
-                                </div>
+                                            @if (selectedValue == "2")
+                                            {
+                                                <option value="2" selected>Check in</option>
+                                            }
+                                            else
+                                            {
+                                                <option value="2">Check in</option>
+                                            }
+
+                                            @if (selectedValue == "3")
+                                            {
+                                                <option value="3" selected>Check out</option>
+                                            }
+                                            else
+                                            {
+                                                <option value="3">Check out</option>
+                                            }
+                                        </select>                           
+                                    </div>
+
+                                    <div class="filter-group">
+                                        <label class="filter-label">StartDate</label>
+                                    <input type="date" class="filter-input" id="dateFrom" value="@(ViewBag.P_StartDate != null ? ((DateTime)ViewBag.P_StartDate).ToString("yyyy-MM-dd") : "")" name="P_StartDate">
+                                    </div>
+
+                                    <div class="filter-group">
+                                        <label class="filter-label">EndDate</label>
+                                    <input type="date" class="filter-input" id="dateTo" value="@(ViewBag.P_EndDate!= null ? ((DateTime)ViewBag.P_EndDate).ToString("yyyy-MM-dd") : "")" name="P_EndDate">
+                                    </div>
                          
-                               <div class="filter-group">
-                                   <label class="filter-label">BookingStatus</label>
-                                <select class="filter-input" id="bookingStatus" name="P_BookingStatusId">
-                                    @{
-                                        bool isAllSelected = ViewBag.selectedBookingStatusId == null || (int?)ViewBag.selectedBookingStatusId == 0;
-                                    }
-                                    <option value="" selected="@(isAllSelected ? "selected" : null)">---All P_BookingStatus---</option>
-
-                                    @if (ViewBag.Booking != null)
-                                    {
-                                        foreach (var item in ViewBag.Booking)
-                                        {
-                                            <option value="@item.BookingStatusId"
-                                                    selected="@(item.BookingStatusId == (ViewBag.selectedBookingStatusId as int?) ? "selected" : null)">
-                                                @item.BookingStatus
-                                            </option>
+                                   <div class="filter-group">
+                                       <label class="filter-label">BookingStatus</label>
+                                    <select class="filter-input" id="bookingStatus" name="P_BookingStatusId">
+                                        @{
+                                            bool isAllSelected = ViewBag.selectedBookingStatusId == null || (int?)ViewBag.selectedBookingStatusId == 0;
                                         }
-                                    }
-                                </select>
+                                        <option value="" selected="@(isAllSelected ? "selected" : null)">---All P_BookingStatus---</option>
+
+                                        @if (ViewBag.Booking != null)
+                                        {
+                                            foreach (var item in ViewBag.Booking)
+                                            {
+                                                <option value="@item.BookingStatusId"
+                                                        selected="@(item.BookingStatusId == (ViewBag.selectedBookingStatusId as int?) ? "selected" : null)">
+                                                    @item.BookingStatus
+                                                </option>
+                                            }
+                                        }
+                                    </select>
+                                </div>
+
+                                   <div class="filter-group">
+                                    <label class="filter-label">Booking Source</label>
+                                    <select class="filter-input" id="bookingSource" name="P_BookingSource">
+                                        @{
+                                            bool isAllSelecteds = string.IsNullOrEmpty(ViewBag.BookingSources as string);
+                                        }
+                                        <option value="" selected="@(isAllSelecteds ? "selected" : null)">---All Sources---</option>
+
+                                        @if (ViewBag.BookingSource != null)
+                                        {
+                                            foreach (var item in ViewBag.BookingSource)
+                                            {
+                                                <option value="@item.BookingSource"
+                                                        selected="@(item.BookingSource == (string)ViewBag.BookingSources ? "selected" : null)">
+                                                    @item.BookingSource
+                                                </option>
+                                            }
+                                        }
+                                    </select>
+                                </div>
                             </div>
 
-                               <div class="filter-group">
-                                <label class="filter-label">Booking Source</label>
-                                <select class="filter-input" id="bookingSource" name="P_BookingSource">
-                                    @{
-                                        bool isAllSelecteds = string.IsNullOrEmpty(ViewBag.BookingSources as string);
-                                    }
-                                    <option value="" selected="@(isAllSelecteds ? "selected" : null)">---All Sources---</option>
-
-                                    @if (ViewBag.BookingSource != null)
-                                    {
-                                        foreach (var item in ViewBag.BookingSource)
-                                        {
-                                            <option value="@item.BookingSource"
-                                                    selected="@(item.BookingSource == (string)ViewBag.BookingSources ? "selected" : null)">
-                                                @item.BookingSource
-                                            </option>
-                                        }
-                                    }
-                                </select>
+                            <div class="filter-actions">
+                                <button class="filter-button primary" onclick="applyFilters()">Apply Filters</button>
+                                <button class="filter-button secondary" onclick="clearFilters()">Clear All</button>
                             </div>
-                        </div>
+                        </form>
 
-                        <div class="filter-actions">
-                            <button class="filter-button primary" onclick="applyFilters()">Apply Filters</button>
-                            <button class="filter-button secondary" onclick="clearFilters()">Clear All</button>
-                        </div>
-                    </form>
+                    </div>
 
-                </div>
-
-                <div class="export-section">
-                    <div class="export-title">Export Options</div>
-                    <div class="export-options">
+                    <div class="export-section">
+                        <div class="export-title">Export Options</div>
+                        <div class="export-options">
                     
-                        <button class="export-button btn btn-success" onclick="exportDataToExcel()">
-                            📊 Export to Excel
-                        </button>
+                            <button class="export-button btn btn-success" onclick="exportDataToExcel()">
+                                📊 Export to Excel
+                            </button>
 
-                        <button class="export-button" onclick="exportDataToCSV()">
-                            📄 Export to CSV
-                        </button>
+                            <button class="export-button" onclick="exportDataToCSV()">
+                                📄 Export to CSV
+                            </button>
                  
-                    </div>
-                </div>
-
-                <div class="results-summary">               
-                        <div class="summary-stats">
-                            <div class="summary-stat">
-                            <div class="stat-value">@ViewBag.TotalBookings</div>
-                                <div class="stat-label">Total Bookings</div>
-                            </div>
-                            <div class="summary-stat">
-                                <div class="stat-value">@ViewBag.TotalRevenue</div>
-                                <div class="stat-label">Total Revenue</div>
-                            </div>
-                            <div class="summary-stat">
-                            <div class="stat-value">@ViewBag.Average</div>
-                                <div class="stat-label">Average Rate</div>
-                            </div>
-                            <div class="summary-stat">
-                            <div class="stat-value">@ViewBag.AverageBookingRate</div>
-                                <div class="stat-label">Average Booking Rate</div>
-                            </div>
-                            <div class="summary-stat">
-                            <div class="stat-value">@ViewBag.totalnight</div>
-                                <div class="stat-label">Total Nights</div>
-                            </div>
-
-                        </div>
-
-                    <div class="pagination-info">
-                    <button class="btn btn-success">summary</button>
-                    </div>
-                </div>
-
-                <div class="table-container">
-                    <div class="table-header">
-                        <div class="table-title">Booking Data Results</div>
-                        <div class="table-controls">
-                            <input type="text" class="search-input" placeholder="Search bookings..." id="searchInput">
                         </div>
                     </div>
+
+                    <div class="results-summary">               
+                            <div class="summary-stats">
+                                <div class="summary-stat">
+                                <div class="stat-value">@ViewBag.TotalBookings</div>
+                                    <div class="stat-label">Total Bookings</div>
+                                </div>
+                                <div class="summary-stat">
+                                    <div class="stat-value">@ViewBag.TotalRevenue</div>
+                                    <div class="stat-label">Total Revenue</div>
+                                </div>
+                                <div class="summary-stat">
+                                <div class="stat-value">@ViewBag.Average</div>
+                                    <div class="stat-label">Average Rate</div>
+                                </div>
+                                <div class="summary-stat">
+                                <div class="stat-value">@ViewBag.AverageBookingRate</div>
+                                    <div class="stat-label">Average Booking Rate</div>
+                                </div>
+                                <div class="summary-stat">
+                                <div class="stat-value">@ViewBag.totalnight</div>
+                                    <div class="stat-label">Total Nights</div>
+                                </div>
+
+                            </div>
+
+                            <div class="pagination-info">
+                            <button class="export-button btn" style="background-color:#0B60B0" id="btnSummary">
+                                        📊 Summary
+                                    </button>
+                            </div>
+                    </div>
+
+                    <div class="table-container">
+                        <div class="table-header">
+                            <div class="table-title">Booking Data Results</div>
+                            <div class="table-controls">
+                                <input type="text" class="search-input" placeholder="Search bookings..." id="searchInput">
+                            </div>
+                        </div>
          
-                    <table id="myTable">
-                    <thead>
-                        <tr>
-                            <th>BookingId</th>
-                            <th>Booking Date</th>
-                            <th>CheckIn-CheckOut</th>
-                            <th>PropertyName</th>
-                            <th>Room-RatePlan</th>
-                            <th>Nights</th>
-                            <th>Country</th>
-                            <th>Currency</th>
-                            <th>Source</th>
-                            <th>Amount</th>
-                            <th>BookingStatus</th>
-                        </tr>
-                    </thead>
+                        <table id="myTable">
+                        <thead>
+                            <tr>
+                                <th>BookingId</th>
+                                <th>Booking Date</th>
+                                <th>CheckIn-CheckOut</th>
+                                <th>PropertyName</th>
+                                <th>Room-RatePlan</th>
+                                <th>Nights</th>
+                                <th>Country</th>
+                                <th>Currency</th>
+                                <th>Source</th>
+                                <th>Amount</th>
+                                <th>BookingStatus</th>
+                            </tr>
+                        </thead>
 
-                    <tbody>
+                        <tbody>
 
-                        @if (ViewBag.bookingData != null)
-                        {
-                            foreach (var item in ViewBag.bookingData)
+                            @if (ViewBag.bookingData != null)
                             {
-                                <tr style="font-size:8px;" class="@(item.BookingStatus == "Confirmed" ? "row-confirmed" :
-                                          item.BookingStatus == "Pending" ? "row-pending" :
-                                          item.BookingStatus == "Cancelled" || item.BookingStatus == "Abandoned" ? "row-cancelled" :
-                                          item.BookingStatus == "No Show" ? "row-no-show" : "")">
+                                foreach (var item in ViewBag.bookingData)
+                                {
+                                    <tr style="font-size:8px;" class="@(item.BookingStatus == "Confirmed" ? "row-confirmed" :
+                                              item.BookingStatus == "Pending" ? "row-pending" :
+                                              item.BookingStatus == "Cancelled" || item.BookingStatus == "Abandoned" ? "row-cancelled" :
+                                              item.BookingStatus == "No Show" ? "row-no-show" : "")">
 
-                                    <td class="text-center">@item.BookingId</td>
-                                    <td class="text-center">@item.BookingDate.ToString("dd/MM/yyyy")</td>
-                                    <td class="text-center">@item.CheckIn.ToString("dd/MM/yyyy") - @item.CheckOut.ToString("dd/MM/yyyy")</td>
-                                        <td class="text-center">@item.AccommodationName</td>
+                                        <td class="text-center">@item.BookingId</td>
+                                        <td class="text-center">@item.BookingDate.ToString("dd/MM/yyyy")</td>
+                                        <td class="text-center">@item.CheckIn.ToString("dd/MM/yyyy") - @item.CheckOut.ToString("dd/MM/yyyy")</td>
+                                            <td class="text-center">@item.AccommodationName</td>
 
+                                            <td class="text-center">
+                                            @item.RoomName - @item.RatePlanName
+                                        </td>
+
+                                        <td class="text-center">@item.Nights</td>
+                                        <td class="text-center">@item.Country</td>
+                                        <td class="text-center">@item.CurrencyName</td>
+                                            <td class="text-center">@item.Source</td>
+                                        <td class="text-center">@item.Amount</td>
                                         <td class="text-center">
-                                        @item.RoomName - @item.RatePlanName
-                                    </td>
-
-                                    <td class="text-center">@item.Nights</td>
-                                    <td class="text-center">@item.Country</td>
-                                    <td class="text-center">@item.CurrencyName</td>
-                                        <td class="text-center">@item.Source</td>
-                                    <td class="text-center">@item.Amount</td>
-                                    <td class="text-center">
-                                        @item.BookingStatus
-                                    </td>
-                                </tr>
+                                            @item.BookingStatus
+                                        </td>
+                                    </tr>
+                                }
                             }
-                        }
-                    </tbody>
+                        </tbody>
 
-                </table>               
+                    </table>               
 
-            </div>
+                </div>
 
-            </div>
-    </div>
+                </div>
+
+        </div>
 
     <script>
        
@@ -850,10 +868,9 @@
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
     <!-- DataTables JS -->
-   
     <script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
     <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script> <!-- Required for Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script> 
     <!-- (Optional) XLSX library for real Excel files -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.19.3/dist/xlsx.full.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
@@ -861,294 +878,364 @@
     <!-- SheetJS for Excel export -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css">
-    <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
     <!-- omit the datatables .css -->
-    <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
 
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 
-<script>
-    $(document).ready(function () {
-        let selectedAccommodations = {}; // { id: name }
-        let searchTimer = null;
-        let isProgrammaticUpdate = false; // input handler ko skip karne ke liye
-
-        // Load existing selections from hidden input
-        const preselectedIds = $('#P_AccommodationIdHidden').val();
-        const preselectedNames = $('#accommodationInput').val();
-
-        if (preselectedIds && preselectedNames) {
-            const ids = preselectedIds.split(',');
-            const names = preselectedNames.split(',');
-            ids.forEach((id, index) => {
-                const k = (id || '').trim();
-                const v = (names[index] || '').trim();
-                if (k && v) selectedAccommodations[k] = v;
-            });
-        }
-
-        // Debounced search on input
-        $('#accommodationInput').on('input', function () {
-            if (isProgrammaticUpdate) return; // programmatic set par search mat chalao
-
-            const inputText = $(this).val();
-
-            // ✅ NEW: agar input empty hai to sab clear kar do
-            if (inputText.trim() === "") {
-                selectedAccommodations = {};
-                $('#P_AccommodationIdHidden').val("");
-                $('#accommodationList').hide();
-                return; // aage search mat karo
-            }
-
-            const query = inputText.split(',').pop().trim(); // last token
-
-            clearTimeout(searchTimer);
-
-            //if (query.length < 2) {
-            //    $('#accommodationList').hide();
-            //    return;
-            //}
-
-            searchTimer = setTimeout(() => {
-                $.ajax({
-                    url: '/Home/GetAccommodation',
-                    type: 'GET',
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                    data: { P_GlobalSearch: query },
-                    success: function (response) {
-                        const $list = $('#accommodationList');
-                        $list.empty().show();
-
-                        if (Array.isArray(response) && response.length > 0) {
-                            response.forEach(item => {
-                                const id = item.accommodationId || item.id || '';
-                                const name = item.accommodationIdName || item.name || '';
-                                if (!id || !name) return;
-
-                                const isChecked = selectedAccommodations[id] ? 'checked' : '';
-                                $list.append(`
-                                <li class="list-group-item">
-                                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-                                        <input type="checkbox" class="accommodation-checkbox"
-                                               data-id="${id}"
-                                               data-name="${name}"
-                                               ${isChecked} />
-                                        <span>${name}</span>
-                                    </label>
-                                </li>
-                            `);
-                            });
-                        } else {
-                            $list.append('<li class="list-group-item disabled">No results</li>');
-                        }
-                    }
-                });
-            }, 250); // debounce 250ms
-        });
-
-
-        // Checkbox selection (multiple selection allowed)
-        $(document).on('change', '.accommodation-checkbox', function () {
-            const id = $(this).data('id');
-            const name = $(this).data('name');
-
-            if ($(this).is(':checked')) {
-                selectedAccommodations[id] = name;
-            } else {
-                delete selectedAccommodations[id];
-            }
-            updateSelectionDisplay(); // yeh ab input trigger nahi karega
-        });
-
-        function updateSelectionDisplay() {
-            const ids = Object.keys(selectedAccommodations);
-            const names = Object.values(selectedAccommodations);
-
-            $('#P_AccommodationIdHidden').val(ids.join(','));
-
-            // Programmatic set start
-            isProgrammaticUpdate = true;
-            $('#accommodationInput').val(names.join(', '));
-            isProgrammaticUpdate = false;
-            // Programmatic set end
-
-            autoResizeTextarea();
-        }
-
-        // Auto resize textarea
-        function autoResizeTextarea() {
-            const textarea = $('#accommodationInput')[0];
-            if (!textarea) return;
-            textarea.style.height = "auto";
-            textarea.style.height = (textarea.scrollHeight) + "px";
-        }
-
-        // Hide dropdown when clicked outside
-        $(document).on('click', function (e) {
-            if (!$(e.target).closest('#accommodationInput, #accommodationList').length) {
-                $('#accommodationList').hide();
-            }
-        });
-
-        // Enter key se accidental submit roko (optional)
-        $('#accommodationInput').on('keydown', function (e) {
-            if (e.key === 'Enter') e.preventDefault();
-        });
-
-        // Initial resize
-        autoResizeTextarea();
-    });
-</script>
-
-<script>
-        function autoResizeTextarea(textarea) {
-            textarea.style.height = 'auto'; // Reset height
-            textarea.style.height = (textarea.scrollHeight) + 'px'; // Set height according to content
-        }
+    <script>
 
         $(document).ready(function () {
-            const $textarea = $('#accommodationInput');
+            let selectedAccommodations = {}; // { id: name }
+            let searchTimer = null;
+            let isProgrammaticUpdate = false; // input handler ko skip karne ke liye
 
-            // Resize on page load
-            autoResizeTextarea($textarea[0]);
+            // Load existing selections from hidden input
+            const preselectedIds = $('#P_AccommodationIdHidden').val();
+            const preselectedNames = $('#accommodationInput').val();
 
-            // Resize on input
-            $textarea.on('input', function () {
-                autoResizeTextarea(this);
-            });
-
-            // Optional: if you dynamically append data to it
-            function updateAccommodationInput(value) {
-                let current = $textarea.val();
-                $textarea.val(current ? current + ', ' + value : value);
-                autoResizeTextarea($textarea[0]);
+            if (preselectedIds && preselectedNames) {
+                const ids = preselectedIds.split(',');
+                const names = preselectedNames.split(',');
+                ids.forEach((id, index) => {
+                    const k = (id || '').trim();
+                    const v = (names[index] || '').trim();
+                    if (k && v) selectedAccommodations[k] = v;
+                });
             }
 
-            // Example usage: When user selects an accommodation
-            $('#accommodationList').on('click', 'li', function () {
-                let name = $(this).text().trim();
-                updateAccommodationInput(name);
+            // Debounced search on input
+            $('#accommodationInput').on('input', function () {
+                if (isProgrammaticUpdate) return; // programmatic set par search mat chalao
+
+                const inputText = $(this).val();
+
+                // ✅ NEW: agar input empty hai to sab clear kar do
+                if (inputText.trim() === "") {
+                    selectedAccommodations = {};
+                    $('#P_AccommodationIdHidden').val("");
+                    $('#accommodationList').hide();
+                    return; // aage search mat karo
+                }
+
+                const query = inputText.split(',').pop().trim(); // last token
+
+                clearTimeout(searchTimer);
+
+                //if (query.length < 2) {
+                //    $('#accommodationList').hide();
+                //    return;
+                //}
+
+                searchTimer = setTimeout(() => {
+                    $.ajax({
+                        url: '/Home/BookingData',
+                        type: 'GET',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                        data: { p_AccommodationSearch: query },
+                        success: function (response) {
+                            const $list = $('#accommodationList');
+                            $list.empty().show();
+
+                            if (Array.isArray(response) && response.length > 0) {
+                                response.forEach(item => {
+                                    const id = item.accommodationId || item.id || '';
+                                    const name = item.accommodationIdName || item.name || '';
+                                    if (!id || !name) return;
+
+                                    const isChecked = selectedAccommodations[id] ? 'checked' : '';
+                                    $list.append(`
+                                    <li class="list-group-item">
+                                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                                            <input type="checkbox" class="accommodation-checkbox"
+                                                   data-id="${id}"
+                                                   data-name="${name}"
+                                                   ${isChecked} />
+                                            <span>${name}</span>
+                                        </label>
+                                    </li>
+                                `);
+                                });
+                            } else {
+                                $list.append('<li class="list-group-item disabled">No results</li>');
+                            }
+                        }
+                    });
+                }, 250); // debounce 250ms
+            });
+
+
+            // Checkbox selection (multiple selection allowed)
+            $(document).on('change', '.accommodation-checkbox', function () {
+                const id = $(this).data('id');
+                const name = $(this).data('name');
+
+                if ($(this).is(':checked')) {
+                    selectedAccommodations[id] = name;
+                } else {
+                    delete selectedAccommodations[id];
+                }
+                updateSelectionDisplay(); // yeh ab input trigger nahi karega
+            });
+
+            function updateSelectionDisplay() {
+                const ids = Object.keys(selectedAccommodations);
+                const names = Object.values(selectedAccommodations);
+
+                $('#P_AccommodationIdHidden').val(ids.join(','));
+
+                // Programmatic set start
+                isProgrammaticUpdate = true;
+                $('#accommodationInput').val(names.join(', '));
+                isProgrammaticUpdate = false;
+                // Programmatic set end
+
+                autoResizeTextarea();
+            }
+
+            // Auto resize textarea
+            function autoResizeTextarea() {
+                const textarea = $('#accommodationInput')[0];
+                if (!textarea) return;
+                textarea.style.height = "auto";
+                textarea.style.height = (textarea.scrollHeight) + "px";
+            }
+
+            // Hide dropdown when clicked outside
+            $(document).on('click', function (e) {
+                if (!$(e.target).closest('#accommodationInput, #accommodationList').length) {
+                    $('#accommodationList').hide();
+                }
+            });
+
+            // Enter key se accidental submit roko (optional)
+            $('#accommodationInput').on('keydown', function (e) {
+                if (e.key === 'Enter') e.preventDefault();
+            });
+
+            // Initial resize
+            autoResizeTextarea();
+        });
+    </script>
+
+    <script>
+            function autoResizeTextarea(textarea) {
+                textarea.style.height = 'auto'; // Reset height
+                textarea.style.height = (textarea.scrollHeight) + 'px'; // Set height according to content
+            }
+
+            $(document).ready(function () {
+                const $textarea = $('#accommodationInput');
+
+                // Resize on page load
+                autoResizeTextarea($textarea[0]);
+
+                // Resize on input
+                $textarea.on('input', function () {
+                    autoResizeTextarea(this);
+                });
+
+                // Optional: if you dynamically append data to it
+                function updateAccommodationInput(value) {
+                    let current = $textarea.val();
+                    $textarea.val(current ? current + ', ' + value : value);
+                    autoResizeTextarea($textarea[0]);
+                }
+
+                // Example usage: When user selects an accommodation
+                $('#accommodationList').on('click', 'li', function () {
+                    let name = $(this).text().trim();
+                    updateAccommodationInput(name);
+                });
+            });
+        </script>
+
+    <script>
+            $(document).click(function (e) {
+                if (!$(e.target).closest('#accommodationInput, #accommodationList').length) {
+                    $('#accommodationList').hide();
+                }
+            });
+    </script>
+
+    <script>
+        $(function () {
+            $('#myTable').DataTable({
+                pageLength: 10,
+                order: [[1, 'desc']],
+                responsive: true,
+                deferRender: true,
+
+                // HIDE THESE:
+                searching: false,      // no search box
+                lengthChange: false,   // no "Show entries"
+
+                // layout: table + info + pagination at bottom only
+                dom: 't<"dt-bottom"ip>',
+                // agar info line bhi nahi chahiye:
+                // info: false, dom: 'tp'
             });
         });
     </script>
 
-<script>
-        $(document).click(function (e) {
-            if (!$(e.target).closest('#accommodationInput, #accommodationList').length) {
-                $('#accommodationList').hide();
-            }
-        });
-</script>
-
-<script>
-    $(function () {
-        $('#myTable').DataTable({
-            pageLength: 10,
-            order: [[1, 'desc']],
-            responsive: true,
-            deferRender: true,
-
-            // HIDE THESE:
-            searching: false,      // no search box
-            lengthChange: false,   // no "Show entries"
-
-            // layout: table + info + pagination at bottom only
-            dom: 't<"dt-bottom"ip>',
-            // agar info line bhi nahi chahiye:
-            // info: false, dom: 'tp'
-        });
-    });
-</script>
-
-<script>
-    // Helper: visible/filtered rows ke DOM se plain text nikalo (no <span>)
-    function getCleanRows(dt) {
-        const nodes = dt.rows({ search: 'applied' }).nodes().toArray();
-        return nodes.map(tr => Array.from(tr.cells).map(td => td.textContent.trim()));
-    }
-
-    function exportDataToExcel() {
-        const dt = $('#myTable').DataTable();
-
-        // headers (text only)
-        const headers = $('#myTable thead th').map(function () {
-            return $(this).text().trim();
-        }).get();
-
-        // rows (clean text; no HTML)
-        const rows = getCleanRows(dt);
-
-        // array-of-arrays (AOA) -> worksheet
-        const aoa = [headers, ...rows];
-        const ws = XLSX.utils.aoa_to_sheet(aoa);
-
-        // workbook -> file
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
-
-        const fileName = 'table_export_' + new Date().toISOString().slice(0, 10) + '.xlsx';
-        XLSX.writeFile(wb, fileName);
-    }
-
-    function exportDataToCSV() {
-        const dt = $('#myTable').DataTable();
-
-        const headers = $('#myTable thead th').map(function () {
-            return csvEscape($(this).text().trim());
-        }).get();
-
-        // rows from DOM (clean) + CSV escaping
-        const rows = getCleanRows(dt).map(r => r.map(csvEscape));
-
-        const lines = [headers.join(','), ...rows.map(r => r.join(','))].join('\r\n');
-        const blob = new Blob([lines], { type: 'text/csv;charset=utf-8;' });
-
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = 'table_export_' + new Date().toISOString().slice(0, 10) + '.csv';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-
-        function csvEscape(v) {
-            v = (v ?? '').toString().replace(/\r?\n/g, ' ').trim();
-            if (/[",]/.test(v)) v = `"${v.replace(/"/g, '""')}"`;
-            return v;
+    <script>
+        // Helper: visible/filtered rows ke DOM se plain text nikalo (no <span>)
+        function getCleanRows(dt) {
+            const nodes = dt.rows({ search: 'applied' }).nodes().toArray();
+            return nodes.map(tr => Array.from(tr.cells).map(td => td.textContent.trim()));
         }
-    }
-</script>
 
+        function exportDataToExcel() {
+            const dt = $('#myTable').DataTable();
 
+            // headers (text only)
+            const headers = $('#myTable thead th').map(function () {
+                return $(this).text().trim();
+            }).get();
 
-@*<script>
-    $(document).ready(function () {
-        // When RoleId changes
-        $('#RolesGroupsDropdown').change(function () {
-            var groupId = $(this).val();
+            // rows (clean text; no HTML)
+            const rows = getCleanRows(dt);
 
-            // Make AJAX call only if RoleId is selected
-            if (groupId) {
-                $.ajax({
-                    url: '/Home/SelectGroup', // Make sure this matches your controller's action
-                    type: 'GET',
-                    data: { p_ReportGroupId: groupId },
+            // array-of-arrays (AOA) -> worksheet
+            const aoa = [headers, ...rows];
+            const ws = XLSX.utils.aoa_to_sheet(aoa);
 
-                    success: function (group) {
-                        // Handle success - populate RoleGroup dropdown dynamically
-                        $('#RoleGroupCombinedDropdown').empty();
-                        $('#RoleGroupCombinedDropdown').append('<option value="">Select SubGroupName</option>');
-                        $.each(group, function (index, group) {
-                            $('#RoleGroupCombinedDropdown').append('<option value="' + group.reportSubGroupId + '">' + group.reportSubGroupName + '</option>');
-                        });
-                    },
-                    error: function (error) {
-                        console.error("Error fetching RoleGroups:", error);
-                    }
-                });
+            // workbook -> file
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+
+            const fileName = 'table_export_' + new Date().toISOString().slice(0, 10) + '.xlsx';
+            XLSX.writeFile(wb, fileName);
+        }
+
+        function exportDataToCSV() {
+            const dt = $('#myTable').DataTable();
+
+            const headers = $('#myTable thead th').map(function () {
+                return csvEscape($(this).text().trim());
+            }).get();
+
+            // rows from DOM (clean) + CSV escaping
+            const rows = getCleanRows(dt).map(r => r.map(csvEscape));
+
+            const lines = [headers.join(','), ...rows.map(r => r.join(','))].join('\r\n');
+            const blob = new Blob([lines], { type: 'text/csv;charset=utf-8;' });
+
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'table_export_' + new Date().toISOString().slice(0, 10) + '.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+
+            function csvEscape(v) {
+                v = (v ?? '').toString().replace(/\r?\n/g, ' ').trim();
+                if (/[",]/.test(v)) v = `"${v.replace(/"/g, '""')}"`;
+                return v;
+            }
+        }
+    </script>
+
+    @*<script>
+    /* 1) Robust event binding:
+          - Works even if the button is added later via partial/AJAX
+          - Prevents form submit
+    */
+    document.addEventListener('click', function (e) {
+        const btn = e.target.closest('#btnSummary');
+        if (!btn) return;
+        e.preventDefault();
+        if (typeof window.exportSummaryToPdf === 'function') {
+            window.exportSummaryToPdf();
+        } else {
+            console.error('exportSummaryToPdf not found');
+        }
+    });
+
+    /* 2) Your existing function (unchanged, just exposed on window) */
+    window.exportSummaryToPdf = async function () {
+        const { jsPDF } = window.jspdf || {};
+        if (!jsPDF) { alert('jsPDF not loaded'); return; }
+
+        const num = v => Number(String(v ?? 0).replace(/[, ]/g, ''));
+        const summary = {
+            totalBookings: num('@ViewBag.Bookings'),
+            totalRevenue: num('@ViewBag.Revenues'),
+            avgRate: num('@ViewBag.Averages'),
+            avgBookingRate: num('@ViewBag.BookingRate'),
+            totalNights: num('@ViewBag.night'),
+        };
+        const accommodationCell = '@(ViewBag.AccommodationName ?? "—")';
+        const bookingDateCell = '@(ViewBag.BookingDateText ?? "—")';
+
+        const pdf = new jsPDF('l', 'pt', 'a4');
+        const pageW = pdf.internal.pageSize.getWidth();
+        const pageH = pdf.internal.pageSize.getHeight();
+        const outerMargin = 36;
+        const accent = [11, 96, 176];
+
+        let y = outerMargin;
+
+        // Logo (no border)
+        try {
+            const img = new Image();
+            img.src = '@Url.Content("~/images/bookingWhizzlogo.png")';
+            await img.decode();
+            const w = 140, h = Math.round(w * ((img.height || 1) / (img.width || 1)));
+            pdf.addImage(img, 'PNG', outerMargin, y - 6, w, h);
+        } catch { }
+
+        pdf.setFont('helvetica', 'bold'); pdf.setFontSize(16);
+        pdf.text('Booking Data — Summary', pageW / 2, y, { align: 'center' });
+        pdf.setFont('helvetica', 'normal'); pdf.setFontSize(10);
+        pdf.text('Generated: ' + new Date().toLocaleString(), pageW - outerMargin, y + 10, { align: 'right' });
+
+        y += 26; pdf.setDrawColor(...accent); pdf.setLineWidth(1.2);
+        pdf.line(outerMargin, y, pageW - outerMargin, y); y += 14;
+
+        // Centered, compact table
+        const tblW = 680;
+        const left = Math.max(outerMargin, Math.round((pageW - tblW) / 2));
+        const right = left;
+        const fmt = n => Number(n || 0).toLocaleString(undefined, { maximumFractionDigits: 2 });
+
+        pdf.autoTable({
+            startY: y,
+            margin: { left, right },
+            theme: 'grid',
+            tableWidth: tblW,
+            styles: { font: 'helvetica', fontSize: 9, cellPadding: 4, overflow: 'hidden', valign: 'middle' },
+            headStyles: { fillColor: accent, textColor: 255, halign: 'center', fontStyle: 'bold', fontSize: 9, cellPadding: 4 },
+            columnStyles: {
+                0: { cellWidth: 180, halign: 'left' },
+                1: { cellWidth: 90, halign: 'center' },
+                2: { cellWidth: 60, halign: 'right' },
+                3: { cellWidth: 110, halign: 'right' },
+                4: { cellWidth: 60, halign: 'right' },
+                5: { cellWidth: 120, halign: 'right' },
+                6: { cellWidth: 60, halign: 'right' }
+            },
+            head: [[
+                'Accommodation Name(s)', 'Booking Date(s)', 'Total Bookings', 'Total Revenue', 'Average Rate', 'Average Booking Rate', 'Total Nights'
+            ]],
+            body: [[
+                accommodationCell, bookingDateCell,
+                fmt(summary.totalBookings),
+                fmt(summary.totalRevenue),
+                fmt(summary.avgRate),
+                fmt(summary.avgBookingRate),
+                fmt(summary.totalNights)
+            ]],
+            didDrawPage: () => {
+                const txt = 'Page ' + pdf.internal.getNumberOfPages();
+                pdf.setFontSize(9);
+                pdf.text('© BookingWhizz', outerMargin, pageH - 12);
+                pdf.text(txt, pageW - outerMargin, pageH - 12, { align: 'right' });
             }
         });
-    });
-</script>
-*@
+
+        pdf.save('Booking_Summary.pdf'); // or: pdf.output('dataurlnewwindow');
+    };
+</script>*@
+
+
