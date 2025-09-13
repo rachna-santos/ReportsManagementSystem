@@ -11,7 +11,10 @@ using ReportsManagementSystem.Models;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing.Printing;
+using System.Linq;
 using System.Text;
+using System.Text.Json;
+using System.Linq; // ensure this exists
 using System.Threading.Tasks;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
@@ -29,8 +32,8 @@ namespace ReportsManagementSystem.Controllers
         }
         public IActionResult Index()
         {
-            var user=HttpContext.Session.GetInt32("UserId");
-            if (user !=null)
+            var user = HttpContext.Session.GetInt32("UserId");
+            if (user != null)
             {
                 var getuser = _context.Users.FirstOrDefault(p => p.UserId == user);
                 var User = getuser.UserName;
@@ -74,7 +77,7 @@ namespace ReportsManagementSystem.Controllers
             return View();
         }
         [HttpGet]
-        public IActionResult BookingData(string p_AccommodationSearch, string P_BookingSource, int? P_BookingStatusId, DateTime? P_StartDate, DateTime? P_EndDate, string P_AccommodationId_CHAR, int searchfilter,int? p_ReportGroupId,int? p_ReportSubGroupId, int P_Entity, int P_Query)
+        public IActionResult BookingData(string p_AccommodationSearch, string P_BookingSource, int? P_BookingStatusId, DateTime? P_StartDate, DateTime? P_EndDate, string P_AccommodationId_CHAR, int searchfilter, int? p_ReportGroupId, int? p_ReportSubGroupId, int P_Entity, int P_Query)
         {
 
             var user = HttpContext.Session.GetInt32("UserId");
@@ -116,7 +119,7 @@ namespace ReportsManagementSystem.Controllers
              .FromSqlRaw("EXECUTE SP_ReportsManagement @P_Entity={0},@P_Query={1},@p_AccommodationSearch={2}",
                P_Entity = 100, P_Query = 1, p_AccommodationSearch)
               .ToList();
-            
+
             if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
             {
 
@@ -156,7 +159,7 @@ namespace ReportsManagementSystem.Controllers
             //setsourceName
 
             //ShowBookingdata
-            // using Microsoft.EntityFrameworkCore;
+
 
             if (searchfilter == 1 && P_BookingStartDate.HasValue && P_BookingEndDate.HasValue)
             {
@@ -177,27 +180,95 @@ namespace ReportsManagementSystem.Controllers
         ")
                     .ToList();
 
+                // (optional) selected IDs filter: "15,10750"
+                HashSet<long>? selectedIdSet = null;
 
-                ViewBag.Bookings = bookingData.Any() ? bookingData.First().PDF_TotalBookings : 0;
-                ViewBag.Revenues = bookingData.Any() ? bookingData.First().PDF_TotalRevenue : 0;
-                ViewBag.night = bookingData.Any() ? bookingData.First().PDF_TotalNights : 0;
-                ViewBag.BookingRate = bookingData.Any() ? bookingData.First().PDF_AverageBookingRate : 0;
-                ViewBag.Averages = bookingData.Any() ? bookingData.First().PDF_AverageRate : 0;
-                var row = bookingData.FirstOrDefault();
-
-                ViewBag.Averages = row?.PDF_AverageRate ?? 0;
-                ViewBag.AccommodationName = row?.AccommodationName ?? "—";
-
-                // Agar SP se booking date aa raha hai (jaise PDF_BookingDate)
-                if (row?.BookingDate is DateTime d && d != default)
+                if (!string.IsNullOrWhiteSpace(P_AccommodationId_CHAR))
                 {
-                    ViewBag.BookingDateText = d.ToString("dd-MMM-yyyy");
+                    selectedIdSet = P_AccommodationId_CHAR
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                        .Select(s => long.TryParse(s, out var id) ? (long?)id : null)
+                        .Where(id => id.HasValue)
+                        .Select(id => id!.Value)
+                        .ToHashSet();
                 }
-                else
+
+                // ---- Apply filter only if we actually have ids
+                if (selectedIdSet is { Count: > 0 })
                 {
-                    // warna range dikha do
-                    ViewBag.BookingDateText = $"{P_BookingStartDate:dd-MMM-yyyy} – {P_BookingEndDate:dd-MMM-yyyy}";
+                    // If your EF model is: public long AccommodationId { get; set; }
+                    bookingData = bookingData
+                        .Where(b => selectedIdSet.Contains(b.AccommodationId))
+                        .ToList();
+
+                    // If it's nullable: public long? AccommodationId { get; set; }
+                    // bookingData = bookingData
+                    //     .Where(b => b.AccommodationId.HasValue && selectedIdSet.Contains(b.AccommodationId.Value))
+                    //     .ToList();
                 }
+
+                // ---- Date label (fix: add $ on checkout case)
+                string bookingDateText =
+                    searchfilter == 1 && P_BookingStartDate.HasValue && P_BookingEndDate.HasValue
+                        ? $"{P_BookingStartDate:dd-MMM-yyyy} – {P_BookingEndDate:dd-MMM-yyyy}"
+                    : searchfilter == 2 && P_CheckInStartDate.HasValue && P_CheckInEndDate.HasValue
+                        ? $"{P_CheckInStartDate:dd-MMM-yyyy} – {P_CheckInEndDate:dd-MMM-yyyy}"
+                    : searchfilter == 3 && P_CheckOutStartDate.HasValue && P_CheckOutEndDate.HasValue
+                        ? $"{P_CheckOutStartDate:dd-MMM-yyyy} – {P_CheckOutEndDate:dd-MMM-yyyy}"
+                    : "—";
+
+                ViewBag.BookingDateText = bookingDateText;
+
+                // ---- Group per accommodation (1 row if single, multiple if many)
+                var rows = bookingData
+                    .GroupBy(x => new { x.AccommodationId, x.AccommodationName })
+                    .OrderBy(g => g.Key.AccommodationName)
+                    .Select(g =>
+                    {
+                        var r = g.First(); // SP totals usually repeated → safe to take first
+                        return new
+                        {
+                            accommodationName = g.Key.AccommodationName,
+                            bookingDates = bookingDateText,
+
+                            // counts stored as decimal -> convert to int safely (round or truncate as you prefer)
+                            totalBookings = Convert.ToInt32(r.PDF_TotalBookings),
+                            totalNights = Convert.ToInt32(r.PDF_TotalNights),
+
+                            // money/averages are already non-nullable decimals
+                            totalRevenue = r.PDF_TotalRevenue,
+                            averageRate = r.PDF_AverageRate,
+                            averageBookingRate = r.PDF_AverageBookingRate
+                        };
+                    })
+                    .ToList();
+
+                // send to view for jsPDF
+                var jsonOpts = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+                ViewBag.PdfRowsJson = JsonSerializer.Serialize(rows, jsonOpts);
+
+
+
+                //ViewBag.Bookings = bookingData.Any() ? bookingData.First().PDF_TotalBookings : 0;
+                //ViewBag.Revenues = bookingData.Any() ? bookingData.First().PDF_TotalRevenue : 0;
+                //ViewBag.night = bookingData.Any() ? bookingData.First().PDF_TotalNights : 0;
+                //ViewBag.BookingRate = bookingData.Any() ? bookingData.First().PDF_AverageBookingRate : 0;
+                //ViewBag.Averages = bookingData.Any() ? bookingData.First().PDF_AverageRate : 0;
+                //var row = bookingData.FirstOrDefault();
+
+                //ViewBag.Averages = row?.PDF_AverageRate ?? 0;
+                //ViewBag.AccommodationName = row?.AccommodationName ?? "—";
+
+                //// Agar SP se booking date aa raha hai (jaise PDF_BookingDate)
+                //if (row?.BookingDate is DateTime d && d != default)
+                //{
+                //    ViewBag.BookingDateText = d.ToString("dd-MMM-yyyy");
+                //}
+                //else
+                //{
+                //    // warna range dikha do
+                //    ViewBag.BookingDateText = $"{P_BookingStartDate:dd-MMM-yyyy} – {P_BookingEndDate:dd-MMM-yyyy}";
+                //}
 
                 ViewBag.TotalBookings = bookingData.Any() ? bookingData.First().Grand_TotalBookings : 0;
                 ViewBag.TotalRevenue = bookingData.Any() ? bookingData.First().Grand_TotalRevenue : 0;
@@ -206,8 +277,8 @@ namespace ReportsManagementSystem.Controllers
                 ViewBag.Average = bookingData.Any() ? bookingData.First().Grand_AverageRate : 0;
                 ViewBag.bookingData = bookingData;
 
-            
-             
+
+
             }
             else if (searchfilter == 2 && P_CheckInStartDate.HasValue && P_CheckInEndDate.HasValue)
             {
@@ -235,12 +306,78 @@ namespace ReportsManagementSystem.Controllers
                 ViewBag.Average = bookingData.Any() ? bookingData.First().Grand_AverageRate : 0;
                 ViewBag.bookingData = bookingData;
 
+                HashSet<long>? selectedIdSet = null;
 
-                ViewBag.Bookings = bookingData.Any() ? bookingData.First().PDF_TotalBookings : 0;
-                ViewBag.Revenues = bookingData.Any() ? bookingData.First().PDF_TotalRevenue : 0;
-                ViewBag.night = bookingData.Any() ? bookingData.First().PDF_TotalNights : 0;
-                ViewBag.BookingRate = bookingData.Any() ? bookingData.First().PDF_AverageBookingRate : 0;
-                ViewBag.Averages = bookingData.Any() ? bookingData.First().PDF_AverageRate : 0;
+                if (!string.IsNullOrWhiteSpace(P_AccommodationId_CHAR))
+                {
+                    selectedIdSet = P_AccommodationId_CHAR
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                        .Select(s => long.TryParse(s, out var id) ? (long?)id : null)
+                        .Where(id => id.HasValue)
+                        .Select(id => id!.Value)
+                        .ToHashSet();
+                }
+
+                // ---- Apply filter only if we actually have ids
+                if (selectedIdSet is { Count: > 0 })
+                {
+                    // If your EF model is: public long AccommodationId { get; set; }
+                    bookingData = bookingData
+                        .Where(b => selectedIdSet.Contains(b.AccommodationId))
+                        .ToList();
+
+                    // If it's nullable: public long? AccommodationId { get; set; }
+                    // bookingData = bookingData
+                    //     .Where(b => b.AccommodationId.HasValue && selectedIdSet.Contains(b.AccommodationId.Value))
+                    //     .ToList();
+                }
+
+                // ---- Date label (fix: add $ on checkout case)
+                string bookingDateText =
+                    searchfilter == 1 && P_BookingStartDate.HasValue && P_BookingEndDate.HasValue
+                        ? $"{P_BookingStartDate:dd-MMM-yyyy} – {P_BookingEndDate:dd-MMM-yyyy}"
+                    : searchfilter == 2 && P_CheckInStartDate.HasValue && P_CheckInEndDate.HasValue
+                        ? $"{P_CheckInStartDate:dd-MMM-yyyy} – {P_CheckInEndDate:dd-MMM-yyyy}"
+                    : searchfilter == 3 && P_CheckOutStartDate.HasValue && P_CheckOutEndDate.HasValue
+                        ? $"{P_CheckOutStartDate:dd-MMM-yyyy} – {P_CheckOutEndDate:dd-MMM-yyyy}"
+                    : "—";
+
+                ViewBag.BookingDateText = bookingDateText;
+
+                // ---- Group per accommodation (1 row if single, multiple if many)
+                var rows = bookingData
+                    .GroupBy(x => new { x.AccommodationId, x.AccommodationName })
+                    .OrderBy(g => g.Key.AccommodationName)
+                    .Select(g =>
+                    {
+                        var r = g.First(); // SP totals usually repeated → safe to take first
+                        return new
+                        {
+                            accommodationName = g.Key.AccommodationName,
+                            bookingDates = bookingDateText,
+
+                            // counts stored as decimal -> convert to int safely (round or truncate as you prefer)
+                            totalBookings = Convert.ToInt32(r.PDF_TotalBookings),
+                            totalNights = Convert.ToInt32(r.PDF_TotalNights),
+
+                            // money/averages are already non-nullable decimals
+                            totalRevenue = r.PDF_TotalRevenue,
+                            averageRate = r.PDF_AverageRate,
+                            averageBookingRate = r.PDF_AverageBookingRate
+                        };
+                    })
+                    .ToList();
+
+                // send to view for jsPDF
+                var jsonOpts = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+                ViewBag.PdfRowsJson = JsonSerializer.Serialize(rows, jsonOpts);
+
+
+                //ViewBag.Bookings = bookingData.Any() ? bookingData.First().PDF_TotalBookings : 0;
+                //ViewBag.Revenues = bookingData.Any() ? bookingData.First().PDF_TotalRevenue : 0;
+                //ViewBag.night = bookingData.Any() ? bookingData.First().PDF_TotalNights : 0;
+                //ViewBag.BookingRate = bookingData.Any() ? bookingData.First().PDF_AverageBookingRate : 0;
+                //ViewBag.Averages = bookingData.Any() ? bookingData.First().PDF_AverageRate : 0;
             }
             else if (searchfilter == 3 && P_CheckOutStartDate.HasValue && P_CheckOutEndDate.HasValue)
             {
@@ -269,11 +406,79 @@ namespace ReportsManagementSystem.Controllers
                 ViewBag.bookingData = bookingData;
 
 
-                ViewBag.Bookings = bookingData.Any() ? bookingData.First().PDF_TotalBookings : 0;
-                ViewBag.Revenues = bookingData.Any() ? bookingData.First().PDF_TotalRevenue : 0;
-                ViewBag.night = bookingData.Any() ? bookingData.First().PDF_TotalNights : 0;
-                ViewBag.BookingRate = bookingData.Any() ? bookingData.First().PDF_AverageBookingRate : 0;
-                ViewBag.Averages = bookingData.Any() ? bookingData.First().PDF_AverageRate : 0;
+                //ViewBag.Bookings = bookingData.Any() ? bookingData.First().PDF_TotalBookings : 0;
+                //ViewBag.Revenues = bookingData.Any() ? bookingData.First().PDF_TotalRevenue : 0;
+                //ViewBag.night = bookingData.Any() ? bookingData.First().PDF_TotalNights : 0;
+                //ViewBag.BookingRate = bookingData.Any() ? bookingData.First().PDF_AverageBookingRate : 0;
+                //ViewBag.Averages = bookingData.Any() ? bookingData.First().PDF_AverageRate : 0;
+
+
+                HashSet<long>? selectedIdSet = null;
+
+                if (!string.IsNullOrWhiteSpace(P_AccommodationId_CHAR))
+                {
+                    selectedIdSet = P_AccommodationId_CHAR
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                        .Select(s => long.TryParse(s, out var id) ? (long?)id : null)
+                        .Where(id => id.HasValue)
+                        .Select(id => id!.Value)
+                        .ToHashSet();
+                }
+
+                // ---- Apply filter only if we actually have ids
+                if (selectedIdSet is { Count: > 0 })
+                {
+                    // If your EF model is: public long AccommodationId { get; set; }
+                    bookingData = bookingData
+                        .Where(b => selectedIdSet.Contains(b.AccommodationId))
+                        .ToList();
+
+                    // If it's nullable: public long? AccommodationId { get; set; }
+                    // bookingData = bookingData
+                    //     .Where(b => b.AccommodationId.HasValue && selectedIdSet.Contains(b.AccommodationId.Value))
+                    //     .ToList();
+                }
+
+                // ---- Date label (fix: add $ on checkout case)
+                string bookingDateText =
+                    searchfilter == 1 && P_BookingStartDate.HasValue && P_BookingEndDate.HasValue
+                        ? $"{P_BookingStartDate:dd-MMM-yyyy} – {P_BookingEndDate:dd-MMM-yyyy}"
+                    : searchfilter == 2 && P_CheckInStartDate.HasValue && P_CheckInEndDate.HasValue
+                        ? $"{P_CheckInStartDate:dd-MMM-yyyy} – {P_CheckInEndDate:dd-MMM-yyyy}"
+                    : searchfilter == 3 && P_CheckOutStartDate.HasValue && P_CheckOutEndDate.HasValue
+                        ? $"{P_CheckOutStartDate:dd-MMM-yyyy} – {P_CheckOutEndDate:dd-MMM-yyyy}"
+                    : "—";
+
+                ViewBag.BookingDateText = bookingDateText;
+
+                // ---- Group per accommodation (1 row if single, multiple if many)
+                var rows = bookingData
+                    .GroupBy(x => new { x.AccommodationId, x.AccommodationName })
+                    .OrderBy(g => g.Key.AccommodationName)
+                    .Select(g =>
+                    {
+                        var r = g.First(); // SP totals usually repeated → safe to take first
+                        return new
+                        {
+                            accommodationName = g.Key.AccommodationName,
+                            bookingDates = bookingDateText,
+
+                            // counts stored as decimal -> convert to int safely (round or truncate as you prefer)
+                            totalBookings = Convert.ToInt32(r.PDF_TotalBookings),
+                            totalNights = Convert.ToInt32(r.PDF_TotalNights),
+
+                            // money/averages are already non-nullable decimals
+                            totalRevenue = r.PDF_TotalRevenue,
+                            averageRate = r.PDF_AverageRate,
+                            averageBookingRate = r.PDF_AverageBookingRate
+                        };
+                    })
+                    .ToList();
+
+                // send to view for jsPDF
+                var jsonOpts = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+                ViewBag.PdfRowsJson = JsonSerializer.Serialize(rows, jsonOpts);
+
             }
 
 
@@ -441,7 +646,7 @@ namespace ReportsManagementSystem.Controllers
 
             int P_Entity = 101;
             int P_Query = 1;
-       
+
             //var group = _context.ReportsGroups.FirstOrDefault(u => u.ReportGroupId == model.ReportGroupId);
 
             //if (group.ReportGroupId == model.ReportGroupId)
@@ -449,7 +654,7 @@ namespace ReportsManagementSystem.Controllers
             //    ViewBag.EmailError = "Already Exits";
             //    return View();
             //}
-          
+
             var groups = _context.reportsGroups.FromSqlRaw("EXECUTE SP_AccommodationsManagement @P_Entity={0},@P_Query={1}",
                          P_Entity, P_Query)
                        .ToList();
@@ -462,7 +667,7 @@ namespace ReportsManagementSystem.Controllers
             _context.ReportsGroups.Add(model);
             _context.SaveChanges();
             return Json(new { success = true, item = new { reportGroupId = model.ReportGroupId, reportGroupName = model.ReportGroupName } });
-         
+
         }
         [HttpGet]
         public IActionResult CreateSubGroup()
@@ -561,7 +766,7 @@ namespace ReportsManagementSystem.Controllers
             }
             int P_Entity = 101;
             int P_Query = 1;
-           
+
             var groups = _context.reportsGroups.FromSqlRaw("EXECUTE SP_AccommodationsManagement @P_Entity={0},@P_Query={1}",
                        P_Entity, P_Query)
                        .ToList();
@@ -606,7 +811,7 @@ namespace ReportsManagementSystem.Controllers
                     P_Entity = 101, P_Query = 3)
                     .ToList();
             ViewBag.showgroup = showgroup;
-         
+
 
             ViewBag.p_ReportGroupId = p_ReportGroupId;
             ViewBag.p_ReportSubGroupId = p_ReportSubGroupId;
@@ -691,7 +896,7 @@ namespace ReportsManagementSystem.Controllers
         //}
 
         [HttpGet]
-        public IActionResult CreateReportsGroupsAccommodations(string p_AccommodationSearch, long? P_AccommodationId,int? p_ReportGroupId,int? p_ReportSubGroupId)
+        public IActionResult CreateReportsGroupsAccommodations(string p_AccommodationSearch, long? P_AccommodationId, int? p_ReportGroupId, int? p_ReportSubGroupId)
         {
             var user = HttpContext.Session.GetInt32("UserId");
             if (user != null)
@@ -717,7 +922,7 @@ namespace ReportsManagementSystem.Controllers
                 return Json(data);
             }
 
-         
+
             var groups = _context.reportsGroups.FromSqlRaw("EXECUTE SP_AccommodationsManagement @P_Entity={0},@P_Query={1}",
                 P_Entity = 101, P_Query = 1)
                 .ToList();
@@ -730,7 +935,7 @@ namespace ReportsManagementSystem.Controllers
 
             ViewBag.p_ReportGroupId = p_ReportGroupId;
             ViewBag.p_ReportSubGroupId = p_ReportSubGroupId;
-           
+
 
             if (P_AccommodationId > 0 && p_ReportGroupId.HasValue && p_ReportSubGroupId.HasValue)
             {
@@ -738,17 +943,17 @@ namespace ReportsManagementSystem.Controllers
               P_Entity = 101, P_Query = 4, p_ReportGroupId.Value, p_ReportSubGroupId.Value, P_AccommodationId)
               .ToList();
                 ViewBag.showmapping = showmapping;
-               
+
 
             }
-            else if(P_AccommodationId > 0)
+            else if (P_AccommodationId > 0)
             {
                 var showmapping = _context.getMappings.FromSqlRaw("EXECUTE SP_AccommodationsManagement @P_Entity={0},@P_Query={1},@P_AccommodationId={2}",
                 P_Entity = 101, P_Query = 4, P_AccommodationId)
                 .ToList();
                 ViewBag.showmapping = showmapping;
             }
-            else if (p_ReportGroupId!=null)
+            else if (p_ReportGroupId != null)
             {
                 var showmapping = _context.getMappings.FromSqlRaw("EXECUTE SP_AccommodationsManagement @P_Entity={0},@P_Query={1},@p_ReportGroupId={2}",
                 P_Entity = 101, P_Query = 4, p_ReportGroupId)
@@ -760,7 +965,7 @@ namespace ReportsManagementSystem.Controllers
         }
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> CreateReportsGroupsAccommodations(long P_AccommodationId,string p_AccommodationSearch, int? p_ReportGroupId, int? p_ReportSubGroupId)
+        public async Task<IActionResult> CreateReportsGroupsAccommodations(long P_AccommodationId, string p_AccommodationSearch, int? p_ReportGroupId, int? p_ReportSubGroupId)
         {
             var user = HttpContext.Session.GetInt32("UserId");
             if (user != null)
@@ -836,7 +1041,7 @@ namespace ReportsManagementSystem.Controllers
 
                 return View();
             }
-           
+
         }
         [HttpGet]
         public IActionResult ListAccommodationMapping(int? p_ReportGroupId, int? p_ReportSubGroupId)
@@ -852,7 +1057,7 @@ namespace ReportsManagementSystem.Controllers
             int P_Entity = 101;
             int P_Query = 4;
 
-            if (p_ReportGroupId!=null)
+            if (p_ReportGroupId != null)
             {
                 var listmapping = _context.listAccommodationMappings
               .FromSqlRaw("EXEC SP_AccommodationsManagement @P_Entity={0},@P_Query={1},@p_ReportGroupId={2},@p_ReportSubGroupId={3}",
@@ -894,6 +1099,503 @@ namespace ReportsManagementSystem.Controllers
                             P_Entity, P_Query, P_AccommodationId).ToList();
             return Json(groups);
         }
+        [HttpGet]
+        public IActionResult SummaryPDF(string p_AccommodationSearch, string P_BookingSource, int? P_BookingStatusId, DateTime? P_StartDate, DateTime? P_EndDate, string P_AccommodationId_CHAR, int searchfilter, int? p_ReportGroupId, int? p_ReportSubGroupId, int P_Entity, int P_Query)
+        {
+
+            var user = HttpContext.Session.GetInt32("UserId");
+
+            if (user != null)
+            {
+                var getuser = _context.Users.FirstOrDefault(p => p.UserId == user);
+                var User = getuser.UserName;
+                ViewBag.User = User;
+            }
+
+            ViewBag.searchfilter = searchfilter;
+            ViewBag.P_StartDate = P_StartDate;
+            ViewBag.P_EndDate = P_EndDate;
+            DateTime? P_BookingStartDate = P_StartDate;
+            DateTime? P_BookingEndDate = P_EndDate;
+            DateTime? P_CheckInStartDate = P_StartDate;
+            DateTime? P_CheckInEndDate = P_EndDate;
+            DateTime? P_CheckOutStartDate = P_StartDate;
+            DateTime? P_CheckOutEndDate = P_EndDate;
+            //setAccommotationName
+
+            var groups = _context.reportsGroups.FromSqlRaw("EXECUTE SP_AccommodationsManagement @P_Entity={0},@P_Query={1}",
+              P_Entity = 101, P_Query = 1)
+              .ToList();
+            ViewBag.groups = groups;
+
+            var subgroups = _context.reportSubGroups.FromSqlRaw("EXECUTE SP_AccommodationsManagement @P_Entity={0},@P_Query={1}",
+                      P_Entity = 101, P_Query = 2)
+                      .ToList();
+            ViewBag.subgroups = subgroups;
+
+            ViewBag.p_ReportGroupId = p_ReportGroupId;
+            ViewBag.p_ReportSubGroupId = p_ReportSubGroupId;
+
+
+            ViewBag.getname = p_AccommodationSearch;
+            var data = _context.getAccommodations
+             .FromSqlRaw("EXECUTE SP_ReportsManagement @P_Entity={0},@P_Query={1},@p_AccommodationSearch={2}",
+               P_Entity = 100, P_Query = 1, p_AccommodationSearch)
+              .ToList();
+
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+            {
+
+                return Json(data);
+            }
+
+            //setAccommotationName
+
+            //setbookingStatusesName
+            var Booking = _context.bookingStatuses
+                         .FromSqlRaw("EXECUTE SP_ReportsManagement @P_Entity={0},@P_Query={1}",
+                             P_Entity = 100, P_Query = 2)
+                             .ToList();
+            if (!Booking.Any())
+            {
+                Console.WriteLine("⚠ No data returned from SP_ReportsManagement.");
+            }
+
+            ViewBag.Booking = Booking;
+            ViewBag.selectedBookingStatusId = P_BookingStatusId;
+
+            ViewBag.bookingstatus = (P_BookingStatusId.HasValue && P_BookingStatusId.Value != 0)
+                ? Booking.Where(p => p.BookingStatusId == P_BookingStatusId)
+                 .Select(x => x.BookingStatus)
+                 .FirstOrDefault()
+                : "---All P_BookingStatus---";
+
+            //setsourceName
+            var BookingSource = _context.getResources
+                             .FromSqlRaw("EXECUTE SP_ReportsManagement @P_Entity={0},@P_Query={1}",
+                               P_Entity = 100, P_Query = 4)
+                              .ToList();
+            ViewBag.BookingSource = BookingSource;
+
+            ViewBag.BookingSources = P_BookingSource;
+
+            //setsourceName
+
+            //ShowBookingdata
+
+
+            if (searchfilter == 1 && P_BookingStartDate.HasValue && P_BookingEndDate.HasValue)
+            {
+                ViewBag.AccommodationId = P_AccommodationId_CHAR;
+
+                var bookingData = _context.bookingsDatas
+                    .FromSqlInterpolated($@"
+                 EXECUTE SP_ReportsManagement
+                @P_Entity={101},
+                @P_Query={1},
+                @P_BookingStartDate={P_BookingStartDate},
+                @P_BookingEndDate={P_BookingEndDate},
+                @P_BookingSource={P_BookingSource},                 -- null OK
+                @P_AccommodationId_CHAR={P_AccommodationId_CHAR},   -- null OK
+                @P_BookingStatusId={P_BookingStatusId},             -- null/0 OK
+                @p_ReportGroupId={p_ReportGroupId},                 -- null/0 OK
+                @p_ReportSubGroupId={p_ReportSubGroupId}            -- null/0 OK
+        ")
+                    .ToList();
+
+                // (optional) selected IDs filter: "15,10750"
+                HashSet<long>? selectedIdSet = null;
+
+                if (!string.IsNullOrWhiteSpace(P_AccommodationId_CHAR))
+                {
+                    selectedIdSet = P_AccommodationId_CHAR
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                        .Select(s => long.TryParse(s, out var id) ? (long?)id : null)
+                        .Where(id => id.HasValue)
+                        .Select(id => id!.Value)
+                        .ToHashSet();
+                }
+
+                // ---- Apply filter only if we actually have ids
+                if (selectedIdSet is { Count: > 0 })
+                {
+                    // If your EF model is: public long AccommodationId { get; set; }
+                    bookingData = bookingData
+                        .Where(b => selectedIdSet.Contains(b.AccommodationId))
+                        .ToList();
+
+                    // If it's nullable: public long? AccommodationId { get; set; }
+                    // bookingData = bookingData
+                    //     .Where(b => b.AccommodationId.HasValue && selectedIdSet.Contains(b.AccommodationId.Value))
+                    //     .ToList();
+                }
+
+                // ---- Date label (fix: add $ on checkout case)
+                string bookingDateText =
+                    searchfilter == 1 && P_BookingStartDate.HasValue && P_BookingEndDate.HasValue
+                        ? $"{P_BookingStartDate:dd-MMM-yyyy} – {P_BookingEndDate:dd-MMM-yyyy}"
+                    : searchfilter == 2 && P_CheckInStartDate.HasValue && P_CheckInEndDate.HasValue
+                        ? $"{P_CheckInStartDate:dd-MMM-yyyy} – {P_CheckInEndDate:dd-MMM-yyyy}"
+                    : searchfilter == 3 && P_CheckOutStartDate.HasValue && P_CheckOutEndDate.HasValue
+                        ? $"{P_CheckOutStartDate:dd-MMM-yyyy} – {P_CheckOutEndDate:dd-MMM-yyyy}"
+                    : "—";
+
+                ViewBag.BookingDateText = bookingDateText;
+
+                // ---- Group per accommodation (1 row if single, multiple if many)
+                var rows = bookingData
+                    .GroupBy(x => new { x.AccommodationId, x.AccommodationName })
+                    .OrderBy(g => g.Key.AccommodationName)
+                    .Select(g =>
+                    {
+                        var r = g.First(); // SP totals usually repeated → safe to take first
+                        return new
+                        {
+                            accommodationName = g.Key.AccommodationName,
+                            bookingDates = bookingDateText,
+
+                            // counts stored as decimal -> convert to int safely (round or truncate as you prefer)
+                            totalBookings = Convert.ToInt32(r.PDF_TotalBookings),
+                            totalNights = Convert.ToInt32(r.PDF_TotalNights),
+
+                            // money/averages are already non-nullable decimals
+                            totalRevenue = r.PDF_TotalRevenue,
+                            averageRate = r.PDF_AverageRate,
+                            averageBookingRate = r.PDF_AverageBookingRate
+                        };
+                    })
+                    .ToList();
+
+                // send to view for jsPDF
+                var jsonOpts = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+                ViewBag.PdfRowsJson = JsonSerializer.Serialize(rows, jsonOpts);
+
+
+
+                //ViewBag.Bookings = bookingData.Any() ? bookingData.First().PDF_TotalBookings : 0;
+                //ViewBag.Revenues = bookingData.Any() ? bookingData.First().PDF_TotalRevenue : 0;
+                //ViewBag.night = bookingData.Any() ? bookingData.First().PDF_TotalNights : 0;
+                //ViewBag.BookingRate = bookingData.Any() ? bookingData.First().PDF_AverageBookingRate : 0;
+                //ViewBag.Averages = bookingData.Any() ? bookingData.First().PDF_AverageRate : 0;
+                //var row = bookingData.FirstOrDefault();
+
+                //ViewBag.Averages = row?.PDF_AverageRate ?? 0;
+                //ViewBag.AccommodationName = row?.AccommodationName ?? "—";
+
+                //// Agar SP se booking date aa raha hai (jaise PDF_BookingDate)
+                //if (row?.BookingDate is DateTime d && d != default)
+                //{
+                //    ViewBag.BookingDateText = d.ToString("dd-MMM-yyyy");
+                //}
+                //else
+                //{
+                //    // warna range dikha do
+                //    ViewBag.BookingDateText = $"{P_BookingStartDate:dd-MMM-yyyy} – {P_BookingEndDate:dd-MMM-yyyy}";
+                //}
+
+                ViewBag.TotalBookings = bookingData.Any() ? bookingData.First().Grand_TotalBookings : 0;
+                ViewBag.TotalRevenue = bookingData.Any() ? bookingData.First().Grand_TotalRevenue : 0;
+                ViewBag.totalnight = bookingData.Any() ? bookingData.First().Grand_TotalNights : 0;
+                ViewBag.AverageBookingRate = bookingData.Any() ? bookingData.First().Grand_AverageBookingRate : 0;
+                ViewBag.Average = bookingData.Any() ? bookingData.First().Grand_AverageRate : 0;
+                ViewBag.bookingData = bookingData;
+
+
+
+            }
+            else if (searchfilter == 2 && P_CheckInStartDate.HasValue && P_CheckInEndDate.HasValue)
+            {
+                ViewBag.AccommodationId = P_AccommodationId_CHAR;
+
+                var bookingData = _context.bookingsDatas
+                    .FromSqlInterpolated($@"
+                EXECUTE SP_ReportsManagement
+                @P_Entity={101},
+                @P_Query={1},
+                @P_CheckInStartDate={P_CheckInStartDate},
+                @P_CheckInEndDate={P_CheckInEndDate},
+                @P_BookingSource={P_BookingSource},
+                @P_AccommodationId_CHAR={P_AccommodationId_CHAR},
+                @P_BookingStatusId={P_BookingStatusId},
+                @p_ReportGroupId={p_ReportGroupId},
+                @p_ReportSubGroupId={p_ReportSubGroupId}
+        ")
+                    .ToList();
+
+                ViewBag.TotalBookings = bookingData.Any() ? bookingData.First().Grand_TotalBookings : 0;
+                ViewBag.TotalRevenue = bookingData.Any() ? bookingData.First().Grand_TotalRevenue : 0;
+                ViewBag.totalnight = bookingData.Any() ? bookingData.First().Grand_TotalNights : 0;
+                ViewBag.AverageBookingRate = bookingData.Any() ? bookingData.First().Grand_AverageBookingRate : 0;
+                ViewBag.Average = bookingData.Any() ? bookingData.First().Grand_AverageRate : 0;
+                ViewBag.bookingData = bookingData;
+
+                HashSet<long>? selectedIdSet = null;
+
+                if (!string.IsNullOrWhiteSpace(P_AccommodationId_CHAR))
+                {
+                    selectedIdSet = P_AccommodationId_CHAR
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                        .Select(s => long.TryParse(s, out var id) ? (long?)id : null)
+                        .Where(id => id.HasValue)
+                        .Select(id => id!.Value)
+                        .ToHashSet();
+                }
+
+                // ---- Apply filter only if we actually have ids
+                if (selectedIdSet is { Count: > 0 })
+                {
+                    // If your EF model is: public long AccommodationId { get; set; }
+                    bookingData = bookingData
+                        .Where(b => selectedIdSet.Contains(b.AccommodationId))
+                        .ToList();
+
+                    // If it's nullable: public long? AccommodationId { get; set; }
+                    // bookingData = bookingData
+                    //     .Where(b => b.AccommodationId.HasValue && selectedIdSet.Contains(b.AccommodationId.Value))
+                    //     .ToList();
+                }
+
+                // ---- Date label (fix: add $ on checkout case)
+                string bookingDateText =
+                    searchfilter == 1 && P_BookingStartDate.HasValue && P_BookingEndDate.HasValue
+                        ? $"{P_BookingStartDate:dd-MMM-yyyy} – {P_BookingEndDate:dd-MMM-yyyy}"
+                    : searchfilter == 2 && P_CheckInStartDate.HasValue && P_CheckInEndDate.HasValue
+                        ? $"{P_CheckInStartDate:dd-MMM-yyyy} – {P_CheckInEndDate:dd-MMM-yyyy}"
+                    : searchfilter == 3 && P_CheckOutStartDate.HasValue && P_CheckOutEndDate.HasValue
+                        ? $"{P_CheckOutStartDate:dd-MMM-yyyy} – {P_CheckOutEndDate:dd-MMM-yyyy}"
+                    : "—";
+
+                ViewBag.BookingDateText = bookingDateText;
+
+                // ---- Group per accommodation (1 row if single, multiple if many)
+                var rows = bookingData
+                    .GroupBy(x => new { x.AccommodationId, x.AccommodationName })
+                    .OrderBy(g => g.Key.AccommodationName)
+                    .Select(g =>
+                    {
+                        var r = g.First(); // SP totals usually repeated → safe to take first
+                        return new
+                        {
+                            accommodationName = g.Key.AccommodationName,
+                            bookingDates = bookingDateText,
+
+                            // counts stored as decimal -> convert to int safely (round or truncate as you prefer)
+                            totalBookings = Convert.ToInt32(r.PDF_TotalBookings),
+                            totalNights = Convert.ToInt32(r.PDF_TotalNights),
+
+                            // money/averages are already non-nullable decimals
+                            totalRevenue = r.PDF_TotalRevenue,
+                            averageRate = r.PDF_AverageRate,
+                            averageBookingRate = r.PDF_AverageBookingRate
+                        };
+                    })
+                    .ToList();
+
+                // send to view for jsPDF
+                var jsonOpts = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+                ViewBag.PdfRowsJson = JsonSerializer.Serialize(rows, jsonOpts);
+
+
+                //ViewBag.Bookings = bookingData.Any() ? bookingData.First().PDF_TotalBookings : 0;
+                //ViewBag.Revenues = bookingData.Any() ? bookingData.First().PDF_TotalRevenue : 0;
+                //ViewBag.night = bookingData.Any() ? bookingData.First().PDF_TotalNights : 0;
+                //ViewBag.BookingRate = bookingData.Any() ? bookingData.First().PDF_AverageBookingRate : 0;
+                //ViewBag.Averages = bookingData.Any() ? bookingData.First().PDF_AverageRate : 0;
+            }
+            else if (searchfilter == 3 && P_CheckOutStartDate.HasValue && P_CheckOutEndDate.HasValue)
+            {
+                ViewBag.AccommodationId = P_AccommodationId_CHAR;
+
+                var bookingData = _context.bookingsDatas
+                    .FromSqlInterpolated($@"
+            EXECUTE SP_ReportsManagement
+                @P_Entity={101},
+                @P_Query={1},
+                @P_CheckOutStartDate={P_CheckOutStartDate},
+                @P_CheckOutEndDate={P_CheckOutEndDate},
+                @P_BookingSource={P_BookingSource},
+                @P_AccommodationId_CHAR={P_AccommodationId_CHAR},
+                @P_BookingStatusId={P_BookingStatusId},
+                @p_ReportGroupId={p_ReportGroupId},
+                @p_ReportSubGroupId={p_ReportSubGroupId}
+        ")
+                    .ToList();
+
+                ViewBag.TotalBookings = bookingData.Any() ? bookingData.First().Grand_TotalBookings : 0;
+                ViewBag.TotalRevenue = bookingData.Any() ? bookingData.First().Grand_TotalRevenue : 0;
+                ViewBag.totalnight = bookingData.Any() ? bookingData.First().Grand_TotalNights : 0;
+                ViewBag.AverageBookingRate = bookingData.Any() ? bookingData.First().Grand_AverageBookingRate : 0;
+                ViewBag.Average = bookingData.Any() ? bookingData.First().Grand_AverageRate : 0;
+                ViewBag.bookingData = bookingData;
+
+
+                //ViewBag.Bookings = bookingData.Any() ? bookingData.First().PDF_TotalBookings : 0;
+                //ViewBag.Revenues = bookingData.Any() ? bookingData.First().PDF_TotalRevenue : 0;
+                //ViewBag.night = bookingData.Any() ? bookingData.First().PDF_TotalNights : 0;
+                //ViewBag.BookingRate = bookingData.Any() ? bookingData.First().PDF_AverageBookingRate : 0;
+                //ViewBag.Averages = bookingData.Any() ? bookingData.First().PDF_AverageRate : 0;
+
+
+                HashSet<long>? selectedIdSet = null;
+
+                if (!string.IsNullOrWhiteSpace(P_AccommodationId_CHAR))
+                {
+                    selectedIdSet = P_AccommodationId_CHAR
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                        .Select(s => long.TryParse(s, out var id) ? (long?)id : null)
+                        .Where(id => id.HasValue)
+                        .Select(id => id!.Value)
+                        .ToHashSet();
+                }
+
+                // ---- Apply filter only if we actually have ids
+                if (selectedIdSet is { Count: > 0 })
+                {
+                    // If your EF model is: public long AccommodationId { get; set; }
+                    bookingData = bookingData
+                        .Where(b => selectedIdSet.Contains(b.AccommodationId))
+                        .ToList();
+
+                    // If it's nullable: public long? AccommodationId { get; set; }
+                    // bookingData = bookingData
+                    //     .Where(b => b.AccommodationId.HasValue && selectedIdSet.Contains(b.AccommodationId.Value))
+                    //     .ToList();
+                }
+
+                // ---- Date label (fix: add $ on checkout case)
+                string bookingDateText =
+                    searchfilter == 1 && P_BookingStartDate.HasValue && P_BookingEndDate.HasValue
+                        ? $"{P_BookingStartDate:dd-MMM-yyyy} – {P_BookingEndDate:dd-MMM-yyyy}"
+                    : searchfilter == 2 && P_CheckInStartDate.HasValue && P_CheckInEndDate.HasValue
+                        ? $"{P_CheckInStartDate:dd-MMM-yyyy} – {P_CheckInEndDate:dd-MMM-yyyy}"
+                    : searchfilter == 3 && P_CheckOutStartDate.HasValue && P_CheckOutEndDate.HasValue
+                        ? $"{P_CheckOutStartDate:dd-MMM-yyyy} – {P_CheckOutEndDate:dd-MMM-yyyy}"
+                    : "—";
+
+                ViewBag.BookingDateText = bookingDateText;
+
+                // ---- Group per accommodation (1 row if single, multiple if many)
+                var rows = bookingData
+                    .GroupBy(x => new { x.AccommodationId, x.AccommodationName })
+                    .OrderBy(g => g.Key.AccommodationName)
+                    .Select(g =>
+                    {
+                        var r = g.First(); // SP totals usually repeated → safe to take first
+                        return new
+                        {
+                            accommodationName = g.Key.AccommodationName,
+                            bookingDates = bookingDateText,
+
+                            // counts stored as decimal -> convert to int safely (round or truncate as you prefer)
+                            totalBookings = Convert.ToInt32(r.PDF_TotalBookings),
+                            totalNights = Convert.ToInt32(r.PDF_TotalNights),
+
+                            // money/averages are already non-nullable decimals
+                            totalRevenue = r.PDF_TotalRevenue,
+                            averageRate = r.PDF_AverageRate,
+                            averageBookingRate = r.PDF_AverageBookingRate
+                        };
+                    })
+                    .ToList();
+
+                // send to view for jsPDF
+                var jsonOpts = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+                ViewBag.PdfRowsJson = JsonSerializer.Serialize(rows, jsonOpts);
+
+            }
+
+
+            //if (searchfilter == 1 && ((string.IsNullOrEmpty(P_AccommodationId_CHAR) || !string.IsNullOrEmpty(P_AccommodationId_CHAR)) && P_BookingStartDate.HasValue && P_BookingEndDate.HasValue && (!string.IsNullOrEmpty(P_BookingSource) || P_BookingStatusId > 0) && ((p_ReportGroupId ?? 0) > 0 || (p_ReportSubGroupId ?? 0) > 0)))
+            //{
+            //    ViewBag.AccommodationId = P_AccommodationId_CHAR;
+            //    var bookingData = _context.bookingsDatas.FromSqlRaw("EXECUTE SP_ReportsManagement @P_Entity={0},@P_Query={1},@P_BookingStartDate={2},@P_BookingEndDate={3},@P_BookingSource={4},@P_AccommodationId_CHAR={5},@P_BookingStatusId={6},@p_ReportGroupId={7},@p_ReportSubGroupId={8}",
+            //      101, 1, P_BookingStartDate.Value, P_BookingEndDate.Value, P_BookingSource, P_AccommodationId_CHAR, P_BookingStatusId, p_ReportGroupId, p_ReportSubGroupId)
+            //   .ToList();
+
+            //    ViewBag.TotalBookings = bookingData.Any() ? bookingData.First().TotalBookings : 0;
+            //    ViewBag.TotalRevenue = bookingData.Any() ? bookingData.First().TotalRevenue : 0;
+            //    ViewBag.totalnight = bookingData.Any() ? bookingData.First().TotalNights : 0;
+            //    ViewBag.AverageBookingRate = bookingData.Any() ? bookingData.First().AverageBookingRate : 0;
+            //    ViewBag.Average = bookingData.Any() ? bookingData.First().AverageRate : 0;
+            //    ViewBag.bookingData = bookingData;
+            //}
+            //else if (searchfilter == 2 && ((string.IsNullOrEmpty(P_AccommodationId_CHAR) || !string.IsNullOrEmpty(P_AccommodationId_CHAR)) && P_CheckInStartDate.HasValue && P_CheckInEndDate.HasValue && (!string.IsNullOrEmpty(P_BookingSource) || P_BookingStatusId > 0) && ((p_ReportGroupId ?? 0) > 0 || (p_ReportSubGroupId ?? 0) > 0)))
+            //{
+            //    ViewBag.AccommodationId = P_AccommodationId_CHAR;
+            //    var bookingData = _context.bookingsDatas.FromSqlRaw("EXECUTE SP_ReportsManagement @P_Entity={0},@P_Query={1},@P_CheckInStartDate={2},@P_CheckInEndDate={3},@P_BookingSource={4},@P_AccommodationId_CHAR={5},@P_BookingStatusId={6},@p_ReportGroupId={7},@p_ReportSubGroupId={8}",
+            //        101, 1, P_CheckInStartDate.Value, P_CheckInEndDate.Value, P_BookingSource, P_AccommodationId_CHAR, P_BookingStatusId, p_ReportGroupId, p_ReportSubGroupId)
+            //   .ToList();
+            //    ViewBag.TotalBookings = bookingData.Any() ? bookingData.First().TotalBookings : 0;
+            //    ViewBag.TotalRevenue = bookingData.Any() ? bookingData.First().TotalRevenue : 0;
+            //    ViewBag.totalnight = bookingData.Any() ? bookingData.First().TotalNights : 0;
+            //    ViewBag.AverageBookingRate = bookingData.Any() ? bookingData.First().AverageBookingRate : 0;
+            //    ViewBag.Average = bookingData.Any() ? bookingData.First().AverageRate : 0;
+            //    ViewBag.bookingData = bookingData;
+            //}
+            //else if (searchfilter == 3 && ((string.IsNullOrEmpty(P_AccommodationId_CHAR) || !string.IsNullOrEmpty(P_AccommodationId_CHAR)) && P_CheckOutStartDate.HasValue && P_CheckOutEndDate.HasValue && (!string.IsNullOrEmpty(P_BookingSource) || P_BookingStatusId > 0) && ((p_ReportGroupId ?? 0) > 0 || (p_ReportSubGroupId ?? 0) > 0)))
+            //{
+            //    ViewBag.AccommodationId = P_AccommodationId_CHAR;
+            //    var bookingData = _context.bookingsDatas.FromSqlRaw("EXECUTE SP_ReportsManagement @P_Entity={0},@P_Query={1},@P_CheckOutStartDate={2},@P_CheckOutEndDate={3},@P_BookingSource={4},@P_AccommodationId_CHAR={5},@P_BookingStatusId={6},@p_ReportGroupId={7},@p_ReportSubGroupId={8}",
+            //        101, 1, P_CheckOutStartDate.Value, P_CheckOutEndDate.Value, P_BookingSource, P_AccommodationId_CHAR, P_BookingStatusId, p_ReportGroupId, p_ReportSubGroupId)
+            //   .ToList();
+            //    ViewBag.TotalBookings = bookingData.Any() ? bookingData.First().TotalBookings : 0;
+            //    ViewBag.TotalRevenue = bookingData.Any() ? bookingData.First().TotalRevenue : 0;
+            //    ViewBag.totalnight = bookingData.Any() ? bookingData.First().TotalNights : 0;
+            //    ViewBag.AverageBookingRate = bookingData.Any() ? bookingData.First().AverageBookingRate : 0;
+            //    ViewBag.Average = bookingData.Any() ? bookingData.First().AverageRate : 0;
+            //    ViewBag.bookingData = bookingData;
+            //}
+
+            //else if (searchfilter == 1 && !string.IsNullOrEmpty(P_AccommodationId_CHAR) && P_BookingStartDate.HasValue && P_BookingEndDate.HasValue)
+            //{
+            //    ViewBag.AccommodationId = P_AccommodationId_CHAR;
+
+            //    // BASIC FILTERS BLOCK (Accommodation + Dates only)
+            //    var bookingData = _context.bookingsDatas.FromSqlRaw("EXECUTE SP_ReportsManagement @P_Entity={0},@P_Query={1},@P_BookingStartDate={2},@P_BookingEndDate={3},@P_AccommodationId_CHAR={4}",
+            //        101, 1, P_BookingStartDate.Value, P_BookingEndDate.Value, P_AccommodationId_CHAR)
+            //    .ToList();
+
+            //    ViewBag.TotalBookings = bookingData.Any() ? bookingData.First().TotalBookings : 0;
+            //    ViewBag.TotalRevenue = bookingData.Any() ? bookingData.First().TotalRevenue : 0;
+            //    ViewBag.totalnight = bookingData.Any() ? bookingData.First().TotalNights : 0;
+            //    ViewBag.AverageBookingRate = bookingData.Any() ? bookingData.First().AverageBookingRate : 0;
+            //    ViewBag.Average = bookingData.Any() ? bookingData.First().AverageRate : 0;
+            //    ViewBag.bookingData = bookingData;
+            //}
+
+            //else if (searchfilter == 2 && !string.IsNullOrEmpty(P_AccommodationId_CHAR) && P_CheckInStartDate.HasValue && P_CheckInEndDate.HasValue)
+            //{
+            //    ViewBag.AccommodationId = P_AccommodationId_CHAR;
+
+            //    var bookingData = _context.bookingsDatas.FromSqlRaw("EXECUTE SP_ReportsManagement @P_Entity={0},@P_Query={1},@P_CheckInStartDate={2},@P_CheckInEndDate={3},@P_AccommodationId_CHAR={4}",
+            //     101, 1, P_CheckInStartDate.Value, P_CheckInEndDate.Value, P_AccommodationId_CHAR)
+            //   .ToList();
+            //    ViewBag.TotalBookings = bookingData.Any() ? bookingData.First().TotalBookings : 0;
+            //    ViewBag.TotalRevenue = bookingData.Any() ? bookingData.First().TotalRevenue : 0;
+            //    ViewBag.totalnight = bookingData.Any() ? bookingData.First().TotalNights : 0;
+            //    ViewBag.AverageBookingRate = bookingData.Any() ? bookingData.First().AverageBookingRate : 0;
+            //    ViewBag.Average = bookingData.Any() ? bookingData.First().AverageRate : 0;
+            //    ViewBag.bookingData = bookingData;
+            //}
+            //else if (searchfilter == 3 && !string.IsNullOrEmpty(P_AccommodationId_CHAR) && P_CheckOutStartDate.HasValue && P_CheckOutEndDate.HasValue)
+            //{
+            //    ViewBag.AccommodationId = P_AccommodationId_CHAR;
+
+            //    var bookingData = _context.bookingsDatas.FromSqlRaw("EXECUTE SP_ReportsManagement @P_Entity={0},@P_Query={1},@P_CheckOutStartDate={2},@P_CheckOutEndDate={3},@P_AccommodationId_CHAR={4}",
+            //        101, 1, P_CheckOutStartDate.Value, P_CheckOutEndDate.Value, P_AccommodationId_CHAR)
+            //   .ToList();
+            //    ViewBag.TotalBookings = bookingData.Any() ? bookingData.First().TotalBookings : 0;
+            //    ViewBag.TotalRevenue = bookingData.Any() ? bookingData.First().TotalRevenue : 0;
+            //    ViewBag.totalnight = bookingData.Any() ? bookingData.First().TotalNights : 0;
+            //    ViewBag.AverageBookingRate = bookingData.Any() ? bookingData.First().AverageBookingRate : 0;
+            //    ViewBag.Average = bookingData.Any() ? bookingData.First().AverageRate : 0;
+            //    ViewBag.bookingData = bookingData;
+            //}
+            //ShowBookingdata
+
+            return View();
+        }
 
     }
 }
+

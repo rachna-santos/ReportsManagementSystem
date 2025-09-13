@@ -1,5 +1,6 @@
 ﻿    @model IEnumerable<ReportsManagementSystem.Models.BookingsData>
     @using Newtonsoft.Json;
+    @using System.Text.Json
 
 
     <!DOCTYPE html>
@@ -538,6 +539,7 @@
             bool isGroupSubAllSelected = !selectedSubGroupId.HasValue || selectedSubGroupId.Value == 0;
         }
 
+
         <div class="container">
                 <div class="header">
                 <h4>@ViewBag.User</h4>
@@ -754,8 +756,9 @@
                             </div>
 
                             <div class="pagination-info">
-                            <button class="export-button btn" style="background-color:#0B60B0" id="btnSummary">
-                                        📊 Summary
+                                
+                                    <button class="export-button btn" style="background-color:#0B60B0" id="btnSummary">
+                                            📊 Summary
                                     </button>
                             </div>
                     </div>
@@ -826,6 +829,7 @@
 
         </div>
 
+   
     <script>
        
             function exportData(format) {
@@ -860,6 +864,9 @@
             });
         </script>
 
+
+  
+
     </body>
 
     </html>
@@ -878,10 +885,12 @@
     <!-- SheetJS for Excel export -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
-    <!-- omit the datatables .css -->
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+
 
     <script>
 
@@ -1136,106 +1145,300 @@
         }
     </script>
 
-    @*<script>
-    /* 1) Robust event binding:
-          - Works even if the button is added later via partial/AJAX
-          - Prevents form submit
-    */
-    document.addEventListener('click', function (e) {
+    <script>
+        document.addEventListener('click', (e) => {
+            const btn = e.target.closest('#btnSummary');
+            if (!btn) return;
+            e.preventDefault();
+            document.getElementById('goSummary').click(); // safe, encoded URL
+        });
+    </script>
+
+    <script>
+        document.addEventListener('click', (e) => {
         const btn = e.target.closest('#btnSummary');
         if (!btn) return;
         e.preventDefault();
-        if (typeof window.exportSummaryToPdf === 'function') {
-            window.exportSummaryToPdf();
-        } else {
-            console.error('exportSummaryToPdf not found');
-        }
-    });
 
-    /* 2) Your existing function (unchanged, just exposed on window) */
-    window.exportSummaryToPdf = async function () {
+        // Base URL only (no query here) — isse &amp; ka masla khatam
+            const baseUrl = '@Url.Action("SummaryPDF","Home")';
+
+            // Razor se strongly-typed/object ko JS object me serialize kar rahe hain
+            const qs = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(new {
+            // ✅ SummaryPDF controller yeh params read karta hai
+            P_AccommodationId_CHAR = (string)(ViewBag.AccommodationId ?? ""),   // e.g. "10750" ya "10750,10751"
+            P_BookingSource        = (string)(ViewBag.BookingSources ?? null),
+            P_BookingStatusId      = (int?)  (ViewBag.selectedBookingStatusId ?? null),
+            // ✅ ISO format, model binder friendly
+            P_StartDate            = ((DateTime?)ViewBag.P_StartDate)?.ToString("yyyy-MM-dd"),
+            P_EndDate              = ((DateTime?)ViewBag.P_EndDate)?.ToString("yyyy-MM-dd"),
+            searchfilter           = (int?)  (ViewBag.searchfilter ?? 1),
+            p_ReportGroupId        = (int?)  (ViewBag.p_ReportGroupId ?? null),
+            p_ReportSubGroupId     = (int?)  (ViewBag.p_ReportSubGroupId ?? null),
+            P_Entity               = 101,
+            P_Query                = 1
+            }));
+
+        // Null/empty values skip karke query banayen
+        const p = new URLSearchParams();
+        Object.entries(qs).forEach(([k, v]) => {
+            if (v !== null && v !== undefined && v !== '') p.append(k, v);
+        });
+
+        // New tab me open
+        window.open(baseUrl + '?' + p.toString(), '_blank');
+    });
+    </script>
+
+
+
+ @* <script>
+
+       document.addEventListener('click', (e) => {
+            if (e.target.closest('#btnSummary')) {
+                e.preventDefault();
+                exportSummaryToPdf();
+            }
+            if (e.target.closest('#btnCsv')) {
+                e.preventDefault();
+                exportSummaryToCsv();
+            }
+       });
+
+        /* ---------- Common data builders ---------- */
+        function __getRowsFromServer() {
+            const rows = @Html.Raw(ViewBag.PdfRowsJson ?? "[]");
+            const num = v => Number(String(v ?? 0).replace(/[, ]/g, ''));
+            const singleFallback = {
+                accommodationName: '@(ViewBag.AccommodationName ?? "—")',
+                bookingDates: '@(ViewBag.BookingDateText ?? "—")',
+                totalBookings: num('@ViewBag.Bookings'),
+                totalRevenue: num('@ViewBag.Revenues'),
+                averageRate: num('@ViewBag.Averages'),
+                averageBookingRate: num('@ViewBag.BookingRate'),
+                totalNights: num('@ViewBag.night')
+            };
+            return (Array.isArray(rows) && rows.length > 0) ? rows : [singleFallback];
+        }
+        function __getOverall(rows) {
+            const s = rows.reduce((a, r) => {
+                const b = +r.totalBookings || 0, rev = +r.totalRevenue || 0, n = +r.totalNights || 0;
+                a.b += b; a.rev += rev; a.n += n;
+                a.wAdr += (+r.averageRate || 0) * n;
+                a.wAbr += (+r.averageBookingRate || 0) * b;
+                return a;
+            }, { b: 0, rev: 0, n: 0, wAdr: 0, wAbr: 0 });
+            return {
+                totalBookings: s.b,
+                totalRevenue: s.rev,
+                averageRate: s.n ? s.wAdr / s.n : 0,
+                averageBookingRate: s.b ? s.wAbr / s.b : 0,
+                totalNights: s.n
+            };
+        }
+
+        /* ================= PDF ================= */
+        
+        async function exportSummaryToPdf() {
         const { jsPDF } = window.jspdf || {};
         if (!jsPDF) { alert('jsPDF not loaded'); return; }
 
-        const num = v => Number(String(v ?? 0).replace(/[, ]/g, ''));
-        const summary = {
-            totalBookings: num('@ViewBag.Bookings'),
-            totalRevenue: num('@ViewBag.Revenues'),
-            avgRate: num('@ViewBag.Averages'),
-            avgBookingRate: num('@ViewBag.BookingRate'),
-            totalNights: num('@ViewBag.night'),
-        };
-        const accommodationCell = '@(ViewBag.AccommodationName ?? "—")';
-        const bookingDateCell = '@(ViewBag.BookingDateText ?? "—")';
+        const rows = __getRowsFromServer();
+        const overall = __getOverall(rows);
 
         const pdf = new jsPDF('l', 'pt', 'a4');
         const pageW = pdf.internal.pageSize.getWidth();
         const pageH = pdf.internal.pageSize.getHeight();
-        const outerMargin = 36;
-        const accent = [11, 96, 176];
 
-        let y = outerMargin;
+        // Theme + layout
+        const ACCENT = [21, 101, 216], BORDER = [229, 231, 235], MUTED = [107, 114, 128];
+        const pageMargin = 36, cardPad = 18;
 
-        // Logo (no border)
+        // Rounded white card
+        const cardX = pageMargin, cardY = pageMargin;
+        const cardW = pageW - pageMargin * 2, cardH = pageH - pageMargin * 2;
+        pdf.setDrawColor(...BORDER); pdf.setFillColor(255, 255, 255);
+        pdf.roundedRect(cardX, cardY, cardW, cardH, 16, 16, 'FD');
+
+        const left = cardX + cardPad;
+        const right = cardX + cardW - cardPad;
+        const contentW = cardW - cardPad * 2;
+        let y = cardY + cardPad;
+
+        /* ============== HEADER (single row) ============== */
+        const headerTop = y;
+        const headerRowH = 72;
+        const gap = 12;
+
+        // Logo
+        let logoW = 150, logoH = 44;
         try {
             const img = new Image();
             img.src = '@Url.Content("~/images/bookingWhizzlogo.png")';
             await img.decode();
-            const w = 140, h = Math.round(w * ((img.height || 1) / (img.width || 1)));
-            pdf.addImage(img, 'PNG', outerMargin, y - 6, w, h);
+            logoH = Math.round(logoW * ((img.height || 40) / (img.width || 140)));
+            const logoY = headerTop + Math.round((headerRowH - logoH) / 2);
+            pdf.addImage(img, 'PNG', left, logoY, logoW, logoH);
         } catch { }
 
-        pdf.setFont('helvetica', 'bold'); pdf.setFontSize(16);
-        pdf.text('Booking Data — Summary', pageW / 2, y, { align: 'center' });
-        pdf.setFont('helvetica', 'normal'); pdf.setFontSize(10);
-        pdf.text('Generated: ' + new Date().toLocaleString(), pageW - outerMargin, y + 10, { align: 'right' });
+        // Title + strapline
+        const titleX = left + logoW + gap;
+        const titleY = headerTop + 34;
+        pdf.setTextColor(0);
+        pdf.setFont('helvetica', 'bold'); pdf.setFontSize(18);
+        pdf.text('Booking Data — Summary', titleX, titleY);
+        pdf.setFont('helvetica', 'normal'); pdf.setFontSize(10); pdf.setTextColor(100);
+        pdf.text('Automate. Personalize. Convert.', titleX, titleY + 16);
 
-        y += 26; pdf.setDrawColor(...accent); pdf.setLineWidth(1.2);
-        pdf.line(outerMargin, y, pageW - outerMargin, y); y += 14;
+        // Buttons (right side)
+        pdf.setFont('helvetica', 'normal'); pdf.setFontSize(10); pdf.setTextColor(17, 24, 39);
+        const btnH = 28, btnR = 12, btnGap = 10;
+        const wCsv = Math.ceil(pdf.getTextWidth('Export CSV') + 22);
+        const wPri = Math.ceil(pdf.getTextWidth('Download / Print') + 24);
+        const btnPriX = right - wPri;
+        const btnCsvX = btnPriX - btnGap - wCsv;
+        const btnY = headerTop + Math.round((headerRowH - btnH) / 2);
 
-        // Centered, compact table
-        const tblW = 680;
-        const left = Math.max(outerMargin, Math.round((pageW - tblW) / 2));
-        const right = left;
-        const fmt = n => Number(n || 0).toLocaleString(undefined, { maximumFractionDigits: 2 });
+
+        // CSV (outline)
+        pdf.setDrawColor(...BORDER); pdf.setFillColor(255, 255, 255);
+        pdf.roundedRect(btnCsvX, btnY, wCsv, btnH, btnR, btnR, 'FD');
+        pdf.text('Export CSV', btnCsvX + wCsv / 2, btnY + 18, { align: 'center' });
+
+        // Download / Print (primary)
+        pdf.setDrawColor(...ACCENT); pdf.setFillColor(...ACCENT);
+        pdf.roundedRect(btnPriX, btnY, wPri, btnH, btnR, btnR, 'FD');
+        pdf.setTextColor(255, 255, 255);
+        pdf.text('Download / Print', btnPriX + wPri / 2, btnY + 18, { align: 'center' });
+
+
+        // ---- clickable pills inside the PDF (optional but kept) ----
+        const csvHeader = ['Accommodation', 'Booking Date', 'Total Bookings', 'Total Revenue', 'Average Rate', 'Average Booking Rate', 'Total Nights'];
+        const toCsvLine = (arr) => arr.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',');
+        const csvLines = rows.map(r => toCsvLine([r.accommodationName, r.bookingDates, r.totalBookings, r.totalRevenue, r.averageRate, r.averageBookingRate, r.totalNights]));
+        const csvDataUri = 'data:text/csv;charset=utf-8,' + encodeURIComponent([toCsvLine(csvHeader), ...csvLines].join('\n'));
+        pdf.link(btnCsvX, btnY, wCsv, btnH, { url: csvDataUri });
+        pdf.addJS('this.print(true);');
+        pdf.link(btnPriX, btnY, wPri, btnH, { url: 'javascript:print()' });
+
+        // Dates — EXTRA GAP after "Summary" (now below strapline)  ⬅️
+        const genTxt = 'Generated: ' + new Date().toLocaleString();
+        const periodTxt = 'Report Period: ' + (rows[0]?.bookingDates || '—');
+        const datesRight = btnCsvX - 14;
+        const datesTop = titleY + 24;          // was +10 → more space  ⬅️
+        pdf.setFont('helvetica', 'normal'); pdf.setFontSize(10); pdf.setTextColor(...MUTED);
+        pdf.text(genTxt, datesRight, datesTop, { align: 'right' });
+        pdf.text(periodTxt, datesRight, datesTop + 14, { align: 'right' });
+
+        // Divider just below dates
+        let dividerY = datesTop + 20;
+        pdf.setDrawColor(...ACCENT);
+        pdf.setLineWidth(1.2);
+        pdf.line(left, dividerY, right, dividerY);
+
+        // Space before tiles
+        y = dividerY + 24;
+
+        /* ============== OVERALL TILES ============== */
+        pdf.setFont('helvetica', 'bold'); pdf.setFontSize(12); pdf.setTextColor(0);
+        pdf.text('Overall Totals', left, y); y += 16;
+
+        const fmtInt = n => Number(n || 0).toLocaleString();
+        const fmt2 = n => Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        const GAP = 12;
+        const cardW5 = Math.floor((contentW - 4 * GAP) / 5);
+        const cardH5 = 84;
+
+        const cards = [
+            { label: 'Total Bookings', value: fmtInt(overall.totalBookings) },
+            { label: 'Total Revenue', value: fmt2(overall.totalRevenue) },
+            { label: 'Overall Avg Rate', value: fmt2(overall.averageRate) },
+            { label: 'Overall Avg Booking Rate', value: fmt2(overall.averageBookingRate) },
+            { label: 'Total Nights', value: fmtInt(overall.totalNights) }
+        ];
+
+        const drawCard = (x, y, w, h) => {
+            pdf.setFillColor(235, 240, 248); pdf.roundedRect(x, y + 4, w, h, 10, 10, 'F');
+            pdf.setFillColor(255, 255, 255); pdf.setDrawColor(240); pdf.roundedRect(x, y, w, h, 10, 10, 'FD');
+        };
+
+        for (let i = 0; i < cards.length; i++) {
+            const cx = left + i * (cardW5 + GAP);
+            drawCard(cx, y, cardW5, cardH5);
+            pdf.setTextColor(100); pdf.setFont('helvetica', 'normal'); pdf.setFontSize(10);
+            pdf.text(cards[i].label, cx + cardW5 / 2, y + 26, { align: 'center' });
+            pdf.setTextColor(0); pdf.setFont('helvetica', 'bold'); pdf.setFontSize(16);
+            pdf.text(String(cards[i].value), cx + cardW5 / 2, y + 54, { align: 'center' });
+        }
+        y += cardH5 + 34;
+
+        /* ============== TABLE ============== */
+        pdf.setFont('helvetica', 'bold'); pdf.setFontSize(12); pdf.setTextColor(0);
+        pdf.text('By Accommodation', left, y); y += 26;
+
+        const colW = { a: 179, b: 128, c: 68, d: 102, e: 81, f: 115, g: 60 };
 
         pdf.autoTable({
             startY: y,
-            margin: { left, right },
-            theme: 'grid',
-            tableWidth: tblW,
-            styles: { font: 'helvetica', fontSize: 9, cellPadding: 4, overflow: 'hidden', valign: 'middle' },
-            headStyles: { fillColor: accent, textColor: 255, halign: 'center', fontStyle: 'bold', fontSize: 9, cellPadding: 4 },
+            margin: { left, right: left },
+            tableWidth: contentW,
+            theme: 'plain',                     // no default borders  ⬅️
+            styles: {
+                font: 'helvetica',
+                fontSize: 9,
+                cellPadding: { top: 12, right: 12, bottom: 12, left: 12 },
+                overflow: 'linebreak',
+                valign: 'middle',
+                lineWidth: 0                      // remove lines  ⬅️
+            },
+            headStyles: {
+                fillColor: ACCENT,
+                textColor: 255,
+                halign: 'center',
+                fontStyle: 'bold',
+                lineWidth: 0                      // no header borders  ⬅️
+            },
+            alternateRowStyles: { fillColor: [248, 250, 255] },
             columnStyles: {
-                0: { cellWidth: 180, halign: 'left' },
-                1: { cellWidth: 90, halign: 'center' },
-                2: { cellWidth: 60, halign: 'right' },
-                3: { cellWidth: 110, halign: 'right' },
-                4: { cellWidth: 60, halign: 'right' },
-                5: { cellWidth: 120, halign: 'right' },
-                6: { cellWidth: 60, halign: 'right' }
+                0: { cellWidth: colW.a, halign: 'left' },
+                1: { cellWidth: colW.b, halign: 'center' },
+                2: { cellWidth: colW.c, halign: 'right' },
+                3: { cellWidth: colW.d, halign: 'right' },
+                4: { cellWidth: colW.e, halign: 'right' },
+                5: { cellWidth: colW.f, halign: 'right' },
+                6: { cellWidth: colW.g, halign: 'right' }
             },
             head: [[
-                'Accommodation Name(s)', 'Booking Date(s)', 'Total Bookings', 'Total Revenue', 'Average Rate', 'Average Booking Rate', 'Total Nights'
+                'Accommodation', 'Booking Date', 'Total Bookings',
+                'Total Revenue', 'Average Rate', 'Average Booking Rate', 'Total Nights'
             ]],
-            body: [[
-                accommodationCell, bookingDateCell,
-                fmt(summary.totalBookings),
-                fmt(summary.totalRevenue),
-                fmt(summary.avgRate),
-                fmt(summary.avgBookingRate),
-                fmt(summary.totalNights)
-            ]],
+            body: rows.map(r => [
+                r.accommodationName,
+                r.bookingDates,
+                fmtInt(r.totalBookings),
+                fmt2(r.totalRevenue),
+                fmt2(r.averageRate),
+                fmt2(r.averageBookingRate),
+                fmtInt(r.totalNights)
+            ]),
+            // Make "Accommodation" (col 0) bold only in body  ⬅️
+            didParseCell: (data) => {
+                if (data.section === 'body' && data.column.index === 0) {
+                    data.cell.styles.fontStyle = 'bold';
+                }
+            },
             didDrawPage: () => {
                 const txt = 'Page ' + pdf.internal.getNumberOfPages();
                 pdf.setFontSize(9);
-                pdf.text('© BookingWhizz', outerMargin, pageH - 12);
-                pdf.text(txt, pageW - outerMargin, pageH - 12, { align: 'right' });
+                pdf.text('© BookingWhizz', left, cardY + cardH - 12);
+                pdf.text(txt, cardX + cardW - cardPad, cardY + cardH - 12, { align: 'right' });
             }
         });
 
-        pdf.save('Booking_Summary.pdf'); // or: pdf.output('dataurlnewwindow');
-    };
-</script>*@
+        // Save file
+        pdf.save('Booking_Summary.pdf');
 
+    }
+</script>*@
 

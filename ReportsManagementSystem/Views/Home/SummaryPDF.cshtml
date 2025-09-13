@@ -1,0 +1,691 @@
+﻿@using System.Text.Json
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Booking Data — Summary</title>
+  <style>
+    :root{
+      --bw-blue:#1565d8;
+      --bw-blue-600:#0f4fad;
+      --bw-slate:#102a43;
+      --bw-muted:#6b7280;
+      --bw-border:#e5e7eb;
+      --bw-bg:#f8fafc;
+      --bw-card:#ffffff;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bw-bg);color:#111827;font:14px/1.45 "Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial}
+    .container{max-width:1100px;margin:auto;padding:24px}
+    .report{background:var(--bw-card);border:1px solid var(--bw-border);border-radius:16px;box-shadow:0 10px 30px rgba(16,24,40,.06)}
+    header{display:flex;justify-content:space-between;align-items:center;padding:20px 24px;border-bottom:1px solid var(--bw-border)}
+    .brand{display:flex;align-items:center;gap:12px}
+    .brand img{height:40px}
+    .brand h1{margin:0;font-size:18px;color:var(--bw-slate)}
+    .meta{font-size:12px;color:var(--bw-muted)}
+    .actions{display:flex;gap:8px}
+    .btn{appearance:none;border:1px solid var(--bw-border);background:#fff;color:#111827;padding:8px 12px;border-radius:10px;cursor:pointer}
+    .btn.primary{background:var(--bw-blue);border-color:var(--bw-blue);color:#fff}
+    .section{padding:20px 24px}
+    h2{margin:0 0 12px 0;font-size:16px;color:var(--bw-slate)}
+
+    /* Overall tiles */
+    .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-top:16px}
+    .tile{background:var(--bw-card);border:1px solid var(--bw-border);border-radius:12px;padding:16px;text-align:center;box-shadow:0 2px 6px rgba(16,24,40,.05)}
+    .tile .label{font-size:13px;color:var(--bw-muted);margin-bottom:4px}
+    .tile .value{font-size:18px;font-weight:700;color:var(--bw-slate)}
+
+    table{width:100%;border-collapse:separate;border-spacing:0;border:1px solid var(--bw-border);border-radius:12px;overflow:hidden;margin-top:16px}
+    thead th{background:var(--bw-blue);color:#fff;font-weight:600;text-align:left;padding:12px 14px;font-size:13px}
+    tbody td{padding:12px 14px;border-top:1px solid var(--bw-border)}
+    tbody tr:nth-child(odd){background:#fcfdff}
+    tbody tr:hover{background:#f3f6ff}
+    .mono{font-variant-numeric:tabular-nums; font-feature-settings:"tnum" 1}
+
+    .foot{display:flex;justify-content:space-between;align-items:center;margin-top:8px;color:var(--bw-muted);font-size:12px}
+
+    @@media print{
+      body{background:#fff}
+      .container{padding:0}
+      .actions{display:none}
+      .report{border:none;box-shadow:none}
+      @@page{size:A4;margin:16mm}
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="report">
+      <header>
+        <div class="brand">
+             <img src="~/images/bookingWhizzlogo.png" alt="BookingWhizz Logo" />
+          <div>
+            <h1>Booking Data — Summary</h1>
+            <div class="meta">Automate. Personalize. Convert.</div>
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div class="meta">Generated: <span id="genTs">—</span></div>
+          <div class="meta">Report Period: <span id="reportPeriod">—</span></div>
+        </div>
+        <div class="actions">
+          <button class="btn" onclick="exportCSV()">Export CSV</button>
+          <button class="btn primary" onclick="window.print()">Download / Print</button>
+        </div>
+      </header>
+
+      <!-- OVERALL TOTAL -->
+      <section class="section">
+        <h2>Overall Totals</h2>
+        <div class="tiles">
+          <div class="tile">
+            <div class="label">Total Bookings</div>
+            <div class="value mono" id="totalBookings">—</div>
+          </div>
+          <div class="tile">
+            <div class="label">Total Revenue</div>
+            <div class="value mono" id="totalRevenue" data-format="currency">—</div>
+          </div>
+          <div class="tile">
+            <div class="label">Overall Avg Rate</div>
+            <div class="value mono" id="overallAvgRate" data-format="currency">—</div>
+          </div>
+          <div class="tile">
+            <div class="label">Overall Avg Booking Rate</div>
+            <div class="value mono" id="overallAvgBookingRate" data-format="currency">—</div>
+          </div>
+          <div class="tile">
+            <div class="label">Total Nights</div>
+            <div class="value mono" id="totalNights">—</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- BY ACCOMMODATION -->
+      <section class="section">
+        <h2>By Accommodation</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Accommodation</th>
+              <th>Booking Date</th>
+              <th>Total Bookings</th>
+              <th>Total Revenue</th>
+              <th>Average Rate</th>
+              <th>Average Booking Rate</th>
+              <th>Total Nights</th>
+            </tr>
+          </thead>
+          <tbody id="accommodationRows"></tbody>
+        </table>
+        <div class="foot">
+          <span>© BookingWhizz</span>
+        </div>
+      </section>
+    </div>
+  </div>
+
+
+    @section Scripts{
+
+        <script>
+            // ---------- Server data ----------
+            const rows = @Html.Raw(ViewBag.PdfRowsJson ?? "[]");
+
+            // Totals dynamically calculate karo JS me
+            const totalRevenue = rows.reduce((sum, r) => sum + Number(r.totalRevenue || 0), 0);
+            const totalBookings = rows.reduce((sum, r) => sum + Number(r.totalBookings || 0), 0);
+            const totalNights = rows.reduce((sum, r) => sum + Number(r.totalNights || 0), 0);
+
+            // ✅ Changed logic: ab divide nahi hoga, directly sum hoga
+            const overallAvgRate = rows.reduce((sum, r) => sum + Number(r.averageRate || 0), 0);
+            const overallAvgBookingRate = rows.reduce((sum, r) => sum + Number(r.averageBookingRate || 0), 0);
+
+            const totals = {
+                totalBookings,
+                totalRevenue,
+                overallAvgRate,
+                overallAvgBookingRate,
+                totalNights
+            };
+
+            const periodText = '@(ViewBag.BookingDateText ?? "—")'.replace(/'/g, "\\'");
+
+            // ---------- Helpers ----------
+            function formatCurrency(num) {
+                return new Intl.NumberFormat(undefined, {
+                    style: 'currency', currency: 'PKR', maximumFractionDigits: 2
+                }).format(Number(num || 0));
+            }
+            function formatInt(n) { return Number(n || 0).toLocaleString(); }
+
+            // ---------- Render ----------
+            function renderSummary() {
+                // header
+                document.getElementById('genTs').textContent = new Date().toLocaleString();
+                document.getElementById('reportPeriod').textContent = periodText;
+
+                // tiles
+                document.getElementById('totalBookings').textContent = formatInt(totals.totalBookings);
+                document.getElementById('totalRevenue').textContent = formatCurrency(totals.totalRevenue);
+                document.getElementById('overallAvgRate').textContent = formatCurrency(totals.overallAvgRate);
+                document.getElementById('overallAvgBookingRate').textContent = formatCurrency(totals.overallAvgBookingRate);
+                document.getElementById('totalNights').textContent = formatInt(totals.totalNights);
+
+                // table
+                const tbody = document.getElementById('accommodationRows');
+                tbody.innerHTML = '';
+                (Array.isArray(rows) ? rows : []).forEach(r => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                          <td><strong>${r.accommodationName ?? '—'}</strong></td>
+                          <td class="mono">${r.bookingDates ?? '—'}</td>
+                          <td class="mono">${formatInt(r.totalBookings)}</td>
+                          <td class="mono">${formatCurrency(r.totalRevenue)}</td>
+                          <td class="mono">${formatCurrency(r.averageRate)}</td>
+                          <td class="mono">${formatCurrency(r.averageBookingRate)}</td>
+                          <td class="mono">${formatInt(r.totalNights)}</td>
+                        `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            // ---------- CSV ----------
+            function exportCSV() {
+                const header = ['Accommodation', 'Booking Date', 'Total Bookings', 'Total Revenue', 'Average Rate', 'Average Booking Rate', 'Total Nights'];
+                const esc = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+                const body = (Array.isArray(rows) ? rows : []).map(r => [
+                    r.accommodationName, r.bookingDates, r.totalBookings, r.totalRevenue, r.averageRate, r.averageBookingRate, r.totalNights
+                ].map(esc).join(','));
+                const blob = new Blob([[header.map(esc).join(','), ...body].join('\n')], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const a = Object.assign(document.createElement('a'), { href: url, download: 'Booking_Summary.csv' });
+                document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+            }
+
+            // ---------- PDF (jsPDF) ----------
+            async function exportSummaryToPdf() {
+                const { jsPDF } = window.jspdf || {};
+                if (!jsPDF) { alert('jsPDF not loaded'); return; }
+
+                const pdf = new jsPDF('l', 'pt', 'a4');
+                const pageW = pdf.internal.pageSize.getWidth();
+                const pageH = pdf.internal.pageSize.getHeight();
+
+                const ACCENT = [21, 101, 216], BORDER = [229, 231, 235], MUTED = [107, 114, 128];
+                const pageMargin = 36, cardPad = 18;
+                const cardX = pageMargin, cardY = pageMargin, cardW = pageW - 2 * pageMargin, cardH = pageH - 2 * pageMargin;
+
+                pdf.setDrawColor(...BORDER); pdf.setFillColor(255, 255, 255);
+                pdf.roundedRect(cardX, cardY, cardW, cardH, 16, 16, 'FD');
+
+                const left = cardX + cardPad, right = cardX + cardW - cardPad, contentW = cardW - 2 * cardPad;
+                let y = cardY + cardPad;
+
+                // Header
+                const titleX = left + 150 + 12;
+                const titleY = y + 34;
+                pdf.setTextColor(0);
+                pdf.setFont('helvetica', 'bold'); pdf.setFontSize(18);
+                pdf.text('Booking Data — Summary', titleX, titleY);
+                pdf.setFont('helvetica', 'normal'); pdf.setFontSize(10); pdf.setTextColor(100);
+                pdf.text('Automate. Personalize. Convert.', titleX, titleY + 16);
+
+                const datesRight = right - 200;
+                const datesTop = titleY + 24;
+                pdf.setFont('helvetica', 'normal'); pdf.setFontSize(10); pdf.setTextColor(...MUTED);
+                pdf.text('Generated: ' + new Date().toLocaleString(), right, datesTop, { align: 'right' });
+                pdf.text('Report Period: ' + (periodText || '—'), right, datesTop + 14, { align: 'right' });
+
+                let dividerY = datesTop + 20;
+                pdf.setDrawColor(...ACCENT); pdf.setLineWidth(1.2);
+                pdf.line(left, dividerY, right, dividerY);
+                y = dividerY + 24;
+
+                // OVERALL tiles
+                const fmtInt = n => Number(n || 0).toLocaleString();
+                const fmt2 = n => Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                pdf.setFont('helvetica', 'bold'); pdf.setFontSize(12); pdf.setTextColor(0);
+                pdf.text('Overall Totals', left, y); y += 16;
+
+                const GAP = 12, cardW5 = Math.floor((contentW - 4 * GAP) / 5), cardH5 = 84;
+                const cards = [
+                    { label: 'Total Bookings', value: fmtInt(totals.totalBookings) },
+                    { label: 'Total Revenue', value: fmt2(totals.totalRevenue) },
+                    { label: 'Overall Avg Rate', value: fmt2(totals.overallAvgRate) },        // ✅ updated
+                    { label: 'Overall Avg Booking Rate', value: fmt2(totals.overallAvgBookingRate) },  // ✅ updated
+                    { label: 'Total Nights', value: fmtInt(totals.totalNights) }
+                ];
+                const drawCard = (x, y, w, h) => {
+                    pdf.setFillColor(235, 240, 248);
+                    pdf.roundedRect(x, y + 4, w, h, 10, 10, 'F');
+                    pdf.setFillColor(255, 255, 255);
+                    pdf.setDrawColor(240);
+                    pdf.roundedRect(x, y, w, h, 10, 10, 'FD');
+                };
+                cards.forEach((c, i) => {
+                    const cx = left + i * (cardW5 + GAP);
+                    drawCard(cx, y, cardW5, cardH5);
+                    pdf.setTextColor(100); pdf.setFont('helvetica', 'normal'); pdf.setFontSize(10);
+                    pdf.text(c.label, cx + cardW5 / 2, y + 26, { align: 'center' });
+                    pdf.setTextColor(0); pdf.setFont('helvetica', 'bold'); pdf.setFontSize(16);
+                    pdf.text(String(c.value), cx + cardW5 / 2, y + 54, { align: 'center' });
+                });
+                y += cardH5 + 34;
+
+                // Table
+                pdf.setFont('helvetica', 'bold'); pdf.setFontSize(12); pdf.setTextColor(0);
+                pdf.text('By Accommodation', left, y); y += 26;
+
+                const colW = { a: 179, b: 128, c: 68, d: 102, e: 81, f: 115, g: 60 };
+                pdf.autoTable({
+                    startY: y, margin: { left, right: left }, tableWidth: contentW,
+                    theme: 'plain',
+                    styles: { font: 'helvetica', fontSize: 9, cellPadding: { top: 12, right: 12, bottom: 12, left: 12 }, overflow: 'linebreak', valign: 'middle', lineWidth: 0 },
+                    headStyles: { fillColor: [21, 101, 216], textColor: 255, halign: 'center', fontStyle: 'bold', lineWidth: 0 },
+                    alternateRowStyles: { fillColor: [248, 250, 255] },
+                    columnStyles: {
+                        0: { cellWidth: colW.a, halign: 'left' },
+                        1: { cellWidth: colW.b, halign: 'center' },
+                        2: { cellWidth: colW.c, halign: 'right' },
+                        3: { cellWidth: colW.d, halign: 'right' },
+                        4: { cellWidth: colW.e, halign: 'right' },
+                        5: { cellWidth: colW.f, halign: 'right' },
+                        6: { cellWidth: colW.g, halign: 'right' }
+                    },
+                    head: [['Accommodation', 'Booking Date', 'Total Bookings', 'Total Revenue', 'Average Rate', 'Average Booking Rate', 'Total Nights']],
+                    body: (Array.isArray(rows) ? rows : []).map(r => [
+                        r.accommodationName, r.bookingDates,
+                        fmtInt(r.totalBookings), fmt2(r.totalRevenue), fmt2(r.averageRate), fmt2(r.averageBookingRate), fmtInt(r.totalNights)
+                    ]),
+                    didParseCell: (data) => { if (data.section === 'body' && data.column.index === 0) { data.cell.styles.fontStyle = 'bold'; } },
+                    didDrawPage: () => {
+                        pdf.setFontSize(9);
+                        pdf.text('© BookingWhizz', left, cardY + cardH - 12);
+                        pdf.text('Page ' + pdf.internal.getNumberOfPages(), cardX + cardW - cardPad, cardY + cardH - 12, { align: 'right' });
+                    }
+                });
+
+                pdf.autoPrint();
+                const blobUrl = pdf.output('bloburl');
+                window.open(blobUrl, '_blank');
+            }
+
+            // ---------- Bind buttons ----------
+            document.addEventListener('click', (e) => {
+                if (e.target.closest('#btnCsv')) { e.preventDefault(); exportCSV(); }
+                if (e.target.closest('#btnPrint')) { e.preventDefault(); exportSummaryToPdf(); }
+            });
+
+            // Render on load
+            renderSummary();
+        </script>
+
+
+@*        <script>
+            // ---------- Server data ----------
+            const rows = @Html.Raw(ViewBag.PdfRowsJson ?? "[]");
+
+            // Totals dynamically calculate karo JS me
+            const totalRevenue = rows.reduce((sum, r) => sum + Number(r.totalRevenue || 0), 0);
+            const totalBookings = rows.reduce((sum, r) => sum + Number(r.totalBookings || 0), 0);
+            const totalNights = rows.reduce((sum, r) => sum + Number(r.totalNights || 0), 0);
+
+            const totals = {
+                totalBookings,
+                totalRevenue,
+                overallAvgRate: totalNights > 0 ? totalRevenue / totalNights : 0,
+                overallAvgBookingRate: totalBookings > 0 ? totalRevenue / totalBookings : 0,
+                totalNights
+            };
+
+            const periodText = '@(ViewBag.BookingDateText ?? "—")'.replace(/'/g, "\\'");
+
+            // ---------- Helpers ----------
+            function formatCurrency(num) {
+                return new Intl.NumberFormat(undefined, {
+                    style: 'currency', currency: 'PKR', maximumFractionDigits: 2
+                }).format(Number(num || 0));
+            }
+            function formatInt(n) { return Number(n || 0).toLocaleString(); }
+
+            // ---------- Render ----------
+            function renderSummary() {
+                // header
+                document.getElementById('genTs').textContent = new Date().toLocaleString();
+                document.getElementById('reportPeriod').textContent = periodText;
+
+                // tiles
+                document.getElementById('totalBookings').textContent = formatInt(totals.totalBookings);
+                document.getElementById('totalRevenue').textContent = formatCurrency(totals.totalRevenue);
+                document.getElementById('overallAvgRate').textContent = formatCurrency(totals.overallAvgRate);
+                document.getElementById('overallAvgBookingRate').textContent = formatCurrency(totals.overallAvgBookingRate);
+                document.getElementById('totalNights').textContent = formatInt(totals.totalNights);
+
+                // table
+                const tbody = document.getElementById('accommodationRows');
+                tbody.innerHTML = '';
+                (Array.isArray(rows) ? rows : []).forEach(r => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                          <td><strong>${r.accommodationName ?? '—'}</strong></td>
+                          <td class="mono">${r.bookingDates ?? '—'}</td>
+                          <td class="mono">${formatInt(r.totalBookings)}</td>
+                          <td class="mono">${formatCurrency(r.totalRevenue)}</td>
+                          <td class="mono">${formatCurrency(r.averageRate)}</td>
+                          <td class="mono">${formatCurrency(r.averageBookingRate)}</td>
+                          <td class="mono">${formatInt(r.totalNights)}</td>
+                        `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            // ---------- CSV ----------
+            function exportCSV() {
+                const header = ['Accommodation', 'Booking Date', 'Total Bookings', 'Total Revenue', 'Average Rate', 'Average Booking Rate', 'Total Nights'];
+                const esc = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+                const body = (Array.isArray(rows) ? rows : []).map(r => [
+                    r.accommodationName, r.bookingDates, r.totalBookings, r.totalRevenue, r.averageRate, r.averageBookingRate, r.totalNights
+                ].map(esc).join(','));
+                const blob = new Blob([[header.map(esc).join(','), ...body].join('\n')], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const a = Object.assign(document.createElement('a'), { href: url, download: 'Booking_Summary.csv' });
+                document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+            }
+
+            // ---------- PDF (jsPDF) ----------
+            async function exportSummaryToPdf() {
+                const { jsPDF } = window.jspdf || {};
+                if (!jsPDF) { alert('jsPDF not loaded'); return; }
+
+                const pdf = new jsPDF('l', 'pt', 'a4');
+                const pageW = pdf.internal.pageSize.getWidth();
+                const pageH = pdf.internal.pageSize.getHeight();
+
+                const ACCENT = [21, 101, 216], BORDER = [229, 231, 235], MUTED = [107, 114, 128];
+                const pageMargin = 36, cardPad = 18;
+                const cardX = pageMargin, cardY = pageMargin, cardW = pageW - 2 * pageMargin, cardH = pageH - 2 * pageMargin;
+
+                pdf.setDrawColor(...BORDER); pdf.setFillColor(255, 255, 255);
+                pdf.roundedRect(cardX, cardY, cardW, cardH, 16, 16, 'FD');
+
+                const left = cardX + cardPad, right = cardX + cardW - cardPad, contentW = cardW - 2 * cardPad;
+                let y = cardY + cardPad;
+
+                // Header
+                const titleX = left + 150 + 12;
+                const titleY = y + 34;
+                pdf.setTextColor(0);
+                pdf.setFont('helvetica', 'bold'); pdf.setFontSize(18);
+                pdf.text('Booking Data — Summary', titleX, titleY);
+                pdf.setFont('helvetica', 'normal'); pdf.setFontSize(10); pdf.setTextColor(100);
+                pdf.text('Automate. Personalize. Convert.', titleX, titleY + 16);
+
+                const datesRight = right - 200;
+                const datesTop = titleY + 24;
+                pdf.setFont('helvetica', 'normal'); pdf.setFontSize(10); pdf.setTextColor(...MUTED);
+                pdf.text('Generated: ' + new Date().toLocaleString(), right, datesTop, { align: 'right' });
+                pdf.text('Report Period: ' + (periodText || '—'), right, datesTop + 14, { align: 'right' });
+
+                let dividerY = datesTop + 20;
+                pdf.setDrawColor(...ACCENT); pdf.setLineWidth(1.2);
+                pdf.line(left, dividerY, right, dividerY);
+                y = dividerY + 24;
+
+                // OVERALL tiles
+                const fmtInt = n => Number(n || 0).toLocaleString();
+                const fmt2 = n => Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                pdf.setFont('helvetica', 'bold'); pdf.setFontSize(12); pdf.setTextColor(0);
+                pdf.text('Overall Totals', left, y); y += 16;
+
+                const GAP = 12, cardW5 = Math.floor((contentW - 4 * GAP) / 5), cardH5 = 84;
+                const cards = [
+                    { label: 'Total Bookings', value: fmtInt(totals.totalBookings) },
+                    { label: 'Total Revenue', value: fmt2(totals.totalRevenue) },
+                    { label: 'Overall Avg Rate', value: fmt2(totals.overallAvgRate) },
+                    { label: 'Overall Avg Booking Rate', value: fmt2(totals.overallAvgBookingRate) },
+                    { label: 'Total Nights', value: fmtInt(totals.totalNights) }
+                ];
+                const drawCard = (x, y, w, h) => { pdf.setFillColor(235, 240, 248); pdf.roundedRect(x, y + 4, w, h, 10, 10, 'F'); pdf.setFillColor(255, 255, 255); pdf.setDrawColor(240); pdf.roundedRect(x, y, w, h, 10, 10, 'FD'); };
+                cards.forEach((c, i) => {
+                    const cx = left + i * (cardW5 + GAP);
+                    drawCard(cx, y, cardW5, cardH5);
+                    pdf.setTextColor(100); pdf.setFont('helvetica', 'normal'); pdf.setFontSize(10);
+                    pdf.text(c.label, cx + cardW5 / 2, y + 26, { align: 'center' });
+                    pdf.setTextColor(0); pdf.setFont('helvetica', 'bold'); pdf.setFontSize(16);
+                    pdf.text(String(c.value), cx + cardW5 / 2, y + 54, { align: 'center' });
+                });
+                y += cardH5 + 34;
+
+                // Table
+                pdf.setFont('helvetica', 'bold'); pdf.setFontSize(12); pdf.setTextColor(0);
+                pdf.text('By Accommodation', left, y); y += 26;
+
+                const colW = { a: 179, b: 128, c: 68, d: 102, e: 81, f: 115, g: 60 };
+                pdf.autoTable({
+                    startY: y, margin: { left, right: left }, tableWidth: contentW,
+                    theme: 'plain',
+                    styles: { font: 'helvetica', fontSize: 9, cellPadding: { top: 12, right: 12, bottom: 12, left: 12 }, overflow: 'linebreak', valign: 'middle', lineWidth: 0 },
+                    headStyles: { fillColor: [21, 101, 216], textColor: 255, halign: 'center', fontStyle: 'bold', lineWidth: 0 },
+                    alternateRowStyles: { fillColor: [248, 250, 255] },
+                    columnStyles: {
+                        0: { cellWidth: colW.a, halign: 'left' },
+                        1: { cellWidth: colW.b, halign: 'center' },
+                        2: { cellWidth: colW.c, halign: 'right' },
+                        3: { cellWidth: colW.d, halign: 'right' },
+                        4: { cellWidth: colW.e, halign: 'right' },
+                        5: { cellWidth: colW.f, halign: 'right' },
+                        6: { cellWidth: colW.g, halign: 'right' }
+                    },
+                    head: [['Accommodation', 'Booking Date', 'Total Bookings', 'Total Revenue', 'Average Rate', 'Average Booking Rate', 'Total Nights']],
+                    body: (Array.isArray(rows) ? rows : []).map(r => [
+                        r.accommodationName, r.bookingDates,
+                        fmtInt(r.totalBookings), fmt2(r.totalRevenue), fmt2(r.averageRate), fmt2(r.averageBookingRate), fmtInt(r.totalNights)
+                    ]),
+                    didParseCell: (data) => { if (data.section === 'body' && data.column.index === 0) { data.cell.styles.fontStyle = 'bold'; } },
+                    didDrawPage: () => { pdf.setFontSize(9); pdf.text('© BookingWhizz', left, cardY + cardH - 12); pdf.text('Page ' + pdf.internal.getNumberOfPages(), cardX + cardW - cardPad, cardY + cardH - 12, { align: 'right' }); }
+                });
+
+                pdf.autoPrint();
+                const blobUrl = pdf.output('bloburl');
+                window.open(blobUrl, '_blank');
+            }
+
+            // ---------- Bind buttons ----------
+            document.addEventListener('click', (e) => {
+                if (e.target.closest('#btnCsv')) { e.preventDefault(); exportCSV(); }
+                if (e.target.closest('#btnPrint')) { e.preventDefault(); exportSummaryToPdf(); }
+            });
+
+            // Render on load
+            renderSummary();
+        </script>
+*@
+
+      @* <script>
+            // ---------- Server data ----------
+            const rows = @Html.Raw(ViewBag.PdfRowsJson ?? "[]");
+
+            // Totals (Grand_...) jo aap controller me set karte ho:
+            const totals = @Html.Raw(JsonSerializer.Serialize(new {
+            totalBookings = ViewBag.TotalBookings ?? 0,
+            totalRevenue = ViewBag.TotalRevenue ?? 0,
+            overallAvgRate = ViewBag.Average ?? 0,
+            overallAvgBookingRate = ViewBag.AverageBookingRate ?? 0,
+            totalNights = ViewBag.totalnight ?? 0
+            }));
+
+            const periodText = '@(ViewBag.BookingDateText ?? "—")'.replace(/'/g, "\\'");
+
+            // ---------- Helpers ----------
+            function formatCurrency(num) {
+                return new Intl.NumberFormat(undefined, {
+                    style: 'currency', currency: 'PKR', maximumFractionDigits: 2
+                }).format(Number(num || 0));
+            }
+            function formatInt(n) { return Number(n || 0).toLocaleString(); }
+
+            // ---------- Render ----------
+            function renderSummary() {
+                // header
+                document.getElementById('genTs').textContent = new Date().toLocaleString();
+                document.getElementById('reportPeriod').textContent = periodText;
+
+                // tiles
+                document.getElementById('totalBookings').textContent = formatInt(totals.totalBookings);
+                document.getElementById('totalRevenue').textContent = formatCurrency(totals.totalRevenue);
+                document.getElementById('overallAvgRate').textContent = formatCurrency(totals.overallAvgRate);
+                document.getElementById('overallAvgBookingRate').textContent = formatCurrency(totals.overallAvgBookingRate);
+                document.getElementById('totalNights').textContent = formatInt(totals.totalNights);
+
+                // table
+                const tbody = document.getElementById('accommodationRows');
+                tbody.innerHTML = '';
+                (Array.isArray(rows) ? rows : []).forEach(r => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                  <td><strong>${r.accommodationName ?? '—'}</strong></td>
+                  <td class="mono">${r.bookingDates ?? '—'}</td>
+                  <td class="mono">${formatInt(r.totalBookings)}</td>
+                  <td class="mono">${formatCurrency(r.totalRevenue)}</td>
+                  <td class="mono">${formatCurrency(r.averageRate)}</td>
+                  <td class="mono">${formatCurrency(r.averageBookingRate)}</td>
+                  <td class="mono">${formatInt(r.totalNights)}</td>
+                `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            // ---------- CSV ----------
+            function exportCSV() {
+                const header = ['Accommodation', 'Booking Date', 'Total Bookings', 'Total Revenue', 'Average Rate', 'Average Booking Rate', 'Total Nights'];
+                const esc = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+                const body = (Array.isArray(rows) ? rows : []).map(r => [
+                    r.accommodationName, r.bookingDates, r.totalBookings, r.totalRevenue, r.averageRate, r.averageBookingRate, r.totalNights
+                ].map(esc).join(','));
+                const blob = new Blob([[header.map(esc).join(','), ...body].join('\n')], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const a = Object.assign(document.createElement('a'), { href: url, download: 'Booking_Summary.csv' });
+                document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+            }
+
+            // ---------- PDF (jsPDF) ----------
+            async function exportSummaryToPdf() {
+                const { jsPDF } = window.jspdf || {};
+                if (!jsPDF) { alert('jsPDF not loaded'); return; }
+
+                const pdf = new jsPDF('l', 'pt', 'a4');
+                const pageW = pdf.internal.pageSize.getWidth();
+                const pageH = pdf.internal.pageSize.getHeight();
+
+                const ACCENT = [21, 101, 216], BORDER = [229, 231, 235], MUTED = [107, 114, 128];
+                const pageMargin = 36, cardPad = 18;
+                const cardX = pageMargin, cardY = pageMargin, cardW = pageW - 2 * pageMargin, cardH = pageH - 2 * pageMargin;
+
+                pdf.setDrawColor(...BORDER); pdf.setFillColor(255, 255, 255);
+                pdf.roundedRect(cardX, cardY, cardW, cardH, 16, 16, 'FD');
+
+                const left = cardX + cardPad, right = cardX + cardW - cardPad, contentW = cardW - 2 * cardPad;
+                let y = cardY + cardPad;
+
+                // Header
+                const headerRowH = 72, gap = 12;
+                // Title
+                const titleX = left + 150 + gap; // (agar logo add karna ho to same code jaisa pehle)
+                const titleY = y + 34;
+                pdf.setTextColor(0);
+                pdf.setFont('helvetica', 'bold'); pdf.setFontSize(18);
+                pdf.text('Booking Data — Summary', titleX, titleY);
+                pdf.setFont('helvetica', 'normal'); pdf.setFontSize(10); pdf.setTextColor(100);
+                pdf.text('Automate. Personalize. Convert.', titleX, titleY + 16);
+
+                // Dates (right)
+                const datesRight = right - 200;
+                const datesTop = titleY + 24;
+                pdf.setFont('helvetica', 'normal'); pdf.setFontSize(10); pdf.setTextColor(...MUTED);
+                pdf.text('Generated: ' + new Date().toLocaleString(), right, datesTop, { align: 'right' });
+                pdf.text('Report Period: ' + (periodText || '—'), right, datesTop + 14, { align: 'right' });
+
+                // Divider
+                let dividerY = datesTop + 20;
+                pdf.setDrawColor(...ACCENT); pdf.setLineWidth(1.2);
+                pdf.line(left, dividerY, right, dividerY);
+                y = dividerY + 24;
+
+                // OVERALL tiles
+                const fmtInt = n => Number(n || 0).toLocaleString();
+                const fmt2 = n => Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                pdf.setFont('helvetica', 'bold'); pdf.setFontSize(12); pdf.setTextColor(0);
+                pdf.text('Overall Totals', left, y); y += 16;
+
+                const GAP = 12, cardW5 = Math.floor((contentW - 4 * GAP) / 5), cardH5 = 84;
+                const cards = [
+                    { label: 'Total Bookings', value: fmtInt(totals.totalBookings) },
+                    { label: 'Total Revenue', value: fmt2(totals.totalRevenue) },
+                    { label: 'Overall Avg Rate', value: fmt2(totals.overallAvgRate) },
+                    { label: 'Overall Avg Booking Rate', value: fmt2(totals.overallAvgBookingRate) },
+                    { label: 'Total Nights', value: fmtInt(totals.totalNights) }
+                ];
+                const drawCard = (x, y, w, h) => { pdf.setFillColor(235, 240, 248); pdf.roundedRect(x, y + 4, w, h, 10, 10, 'F'); pdf.setFillColor(255, 255, 255); pdf.setDrawColor(240); pdf.roundedRect(x, y, w, h, 10, 10, 'FD'); };
+                cards.forEach((c, i) => {
+                    const cx = left + i * (cardW5 + GAP);
+                    drawCard(cx, y, cardW5, cardH5);
+                    pdf.setTextColor(100); pdf.setFont('helvetica', 'normal'); pdf.setFontSize(10);
+                    pdf.text(c.label, cx + cardW5 / 2, y + 26, { align: 'center' });
+                    pdf.setTextColor(0); pdf.setFont('helvetica', 'bold'); pdf.setFontSize(16);
+                    pdf.text(String(c.value), cx + cardW5 / 2, y + 54, { align: 'center' });
+                });
+                y += cardH5 + 34;
+
+                // Table
+                pdf.setFont('helvetica', 'bold'); pdf.setFontSize(12); pdf.setTextColor(0);
+                pdf.text('By Accommodation', left, y); y += 26;
+
+                const colW = { a: 179, b: 128, c: 68, d: 102, e: 81, f: 115, g: 60 };
+                pdf.autoTable({
+                    startY: y, margin: { left, right: left }, tableWidth: contentW,
+                    theme: 'plain',
+                    styles: { font: 'helvetica', fontSize: 9, cellPadding: { top: 12, right: 12, bottom: 12, left: 12 }, overflow: 'linebreak', valign: 'middle', lineWidth: 0 },
+                    headStyles: { fillColor: [21, 101, 216], textColor: 255, halign: 'center', fontStyle: 'bold', lineWidth: 0 },
+                    alternateRowStyles: { fillColor: [248, 250, 255] },
+                    columnStyles: {
+                        0: { cellWidth: colW.a, halign: 'left' },
+                        1: { cellWidth: colW.b, halign: 'center' },
+                        2: { cellWidth: colW.c, halign: 'right' },
+                        3: { cellWidth: colW.d, halign: 'right' },
+                        4: { cellWidth: colW.e, halign: 'right' },
+                        5: { cellWidth: colW.f, halign: 'right' },
+                        6: { cellWidth: colW.g, halign: 'right' }
+                    },
+                    head: [['Accommodation', 'Booking Date', 'Total Bookings', 'Total Revenue', 'Average Rate', 'Average Booking Rate', 'Total Nights']],
+                    body: (Array.isArray(rows) ? rows : []).map(r => [
+                        r.accommodationName, r.bookingDates,
+                        fmtInt(r.totalBookings), fmt2(r.totalRevenue), fmt2(r.averageRate), fmt2(r.averageBookingRate), fmtInt(r.totalNights)
+                    ]),
+                    didParseCell: (data) => { if (data.section === 'body' && data.column.index === 0) { data.cell.styles.fontStyle = 'bold'; } },
+                    didDrawPage: () => { pdf.setFontSize(9); pdf.text('© BookingWhizz', left, cardY + cardH - 12); pdf.text('Page ' + pdf.internal.getNumberOfPages(), cardX + cardW - cardPad, cardY + cardH - 12, { align: 'right' }); }
+                });
+
+                // Open print dialog (optional)
+                pdf.autoPrint();
+                const blobUrl = pdf.output('bloburl');
+                window.open(blobUrl, '_blank');
+            }
+
+            // ---------- Bind buttons ----------
+            document.addEventListener('click', (e) => {
+                if (e.target.closest('#btnCsv')) { e.preventDefault(); exportSummaryToCsv(); }
+                if (e.target.closest('#btnPrint')) { e.preventDefault(); exportSummaryToPdf(); }
+            });
+
+            // Render on load
+            renderSummary();
+        </script>*@
+
+    }
+
+</body>
+
+</html>
