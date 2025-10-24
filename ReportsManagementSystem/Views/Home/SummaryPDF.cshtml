@@ -5,7 +5,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/jquery.dataTables.min.css">
+
   <title>Booking Data — Summary</title>
+
   <style>
     :root{
       --bw-blue:#1565d8;
@@ -54,10 +57,12 @@
       @@page{size:A4;margin:16mm}
     }
   </style>
+
 </head>
 <body>
   <div class="container">
     <div class="report">
+
       <header>
         <div class="brand">
              <img src="~/images/bookingWhizzlogo.png" alt="BookingWhizz Logo" />
@@ -102,11 +107,10 @@
           </div>
         </div>
       </section>
-
       <!-- BY ACCOMMODATION -->
       <section class="section">
         <h2>By Accommodation</h2>
-        <table>
+          <table>
           <thead>
             <tr>
               <th>Accommodation</th>
@@ -116,6 +120,10 @@
               <th>Average Rate</th>
               <th>Average Booking Rate</th>
               <th>Total Nights</th>
+@*              <th>BookingCurrencyId</th>
+              <th>ConvertedCurrencyId</th>
+              <th>ConvertedTotalPrice</th>
+              <th>ConversionRate</th>*@
             </tr>
           </thead>
           <tbody id="accommodationRows"></tbody>
@@ -124,10 +132,10 @@
           <span>© BookingWhizz</span>
         </div>
       </section>
+
     </div>
   </div>
-
-
+  
     @section Scripts{
 
         <script>
@@ -187,6 +195,9 @@
                           <td class="mono">${formatCurrency(r.averageRate)}</td>
                           <td class="mono">${formatCurrency(r.averageBookingRate)}</td>
                           <td class="mono">${formatInt(r.totalNights)}</td>
+
+                            
+
                         `;
                     tbody.appendChild(tr);
                 });
@@ -293,7 +304,9 @@
                         3: { cellWidth: colW.d, halign: 'right' },
                         4: { cellWidth: colW.e, halign: 'right' },
                         5: { cellWidth: colW.f, halign: 'right' },
-                        6: { cellWidth: colW.g, halign: 'right' }
+                        6: { cellWidth: colW.g, halign: 'right' },
+
+                       
                     },
                     head: [['Accommodation', 'Booking Date', 'Total Bookings', 'Total Revenue', 'Average Rate', 'Average Booking Rate', 'Total Nights']],
                     body: (Array.isArray(rows) ? rows : []).map(r => [

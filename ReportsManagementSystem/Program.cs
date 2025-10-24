@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using ReportsManagementSystem.Models;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -9,6 +11,9 @@ builder.Services.AddControllersWithViews();
 var configuration = builder.Configuration;
 string connectionString = configuration.GetConnectionString("default");
 builder.Services.AddDbContext<MyDbContext>(c => c.UseSqlServer(connectionString));
+
+
+
 
 builder.Services.AddSession(options =>
 {
@@ -32,6 +37,7 @@ app.UseStaticFiles();
 app.UseSession();
 app.UseRouting();
 
+app.UseAuthentication();   // <— required
 app.UseAuthorization();
 
 app.MapControllerRoute(

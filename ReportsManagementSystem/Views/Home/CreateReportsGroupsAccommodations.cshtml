@@ -8,7 +8,37 @@
 
     <title>GroupAccommodationMapping - Bookingwhizz</title>
 
-    <style>
+   <style>
+
+        .header {
+            position: relative; /* important */
+        }
+
+        .topbar {
+            position: absolute;
+            top: 12px;
+            right: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 5;
+        }
+
+        .logout-button {
+            background: #dc3545;
+            color: #fff;
+            border: none;
+            padding: 5px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background .2s ease;
+        }
+
+            .logout-button:hover {
+                background: #b02a37;
+            }
+
       
         #myTable {
             width: 100%;
@@ -483,7 +513,7 @@
 
 </head>
 
-<body>
+    <body>
 
     @{
         int? selectedGroupId = ViewBag.p_ReportGroupId as int?;
@@ -496,7 +526,14 @@
 
    <div class="container">
         <div class="header">
-            <h4>@ViewBag.User</h4>
+            <div class="topbar">
+                <span class="user-pill">@ViewBag.User</span>
+                <form asp-controller="Account" asp-action="Logout" method="post">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="logout-button">Logout</button>
+                </form>
+            </div>
+          @*  <h4>@ViewBag.User</h4>*@
             <h1>GroupAccommodationMapping</h1>
         </div>
 
@@ -623,7 +660,6 @@
                                     <td>@item.ReportSubGroupName</td>
                                                                  
                                     <td>
-
                                         <button type="button"
                                                 class="btn @(item.IsMapped == 1 ? "btn-success" : "btn-danger")"
                                                 style="font-size:10px;"
@@ -646,6 +682,7 @@
             </div>
 
         </div>
+
     </div>
 
   <script>
@@ -726,7 +763,6 @@
         </div>
     </div>
 </div>
-
 
 <link rel="stylesheet" href="/lib/datatables/dataTables.bootstrap5.min.css">
 <script src="/lib/jquery/jquery.min.js"></script>
@@ -845,77 +881,6 @@
     });
 </script>
 
-
-@*<script>
-    // 1) Button click -> confirm
-    $(document).on('click', '#btnSubmit', function (e) {
-        e.preventDefault();
-
-        Swal.fire({
-            title: "Confirm mapping?",
-            text: "Do you want to map this data?",
-            icon: "question",
-            showCancelButton: true,
-            confirmButtonText: "Yes",
-            cancelButtonText: "Cancel"
-        }).then((res) => {
-            if (res.isConfirmed) {
-                // Flag set karke submit trigger karo
-                const $form = $('#mapForm');
-                $form.data('confirmed', true);
-                $form.trigger('submit');
-            }
-            // Cancel par kuch nahi karna (koi alert nahi)
-        });
-    });
-
-    // 2) Form submit (sirf jab confirmed ho)
-    $(document).on('submit', '#mapForm', function (e) {
-        const $form = $(this);
-
-        // Agar confirm nahi hua to submit rok do
-        if (!$form.data('confirmed')) {
-            e.preventDefault();
-            return;
-        }
-        // Flag reset (taake accidental double-submit na ho)
-        $form.data('confirmed', false);
-        e.preventDefault();
-
-        $('#btnSubmit').prop('disabled', true);
-
-        $.ajax({
-            url: $form.attr('action'),
-            type: 'POST',
-            data: $form.serialize(),
-            headers: { 'X-Requested-With': 'XMLHttpRequest' },
-            success: function (resp) {
-                if (resp && resp.success) {
-                    Swal.fire({
-                        title: "Success!",
-                        text: resp.message || "Data successfully inserted!",
-                        icon: "success",
-                        confirmButtonText: "OK"
-                    }).then(() => {
-                        const modalEl = document.getElementById('exampleModal');
-                        const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
-                        modal.hide();
-                    });
-                } else {
-                    Swal.fire("Error", (resp && resp.message) || "Insert failed.", "error");
-                }
-            },
-            error: function (xhr) {
-                const msg = (xhr.responseJSON && xhr.responseJSON.message) || xhr.responseText || "Something went wrong.";
-                Swal.fire("Error", msg, "error");
-            },
-            complete: function () {
-                $('#btnSubmit').prop('disabled', false);
-            }
-        });
-    });
-</script>
-*@
 <script>
     $(document).ready(function () {
         $('#myTable').DataTable({
@@ -943,7 +908,7 @@
 
                     if (Array.isArray(response) && response.length > 0) {
 
-                         $('#accommodationList').show();
+                        $('#accommodationList').show();
 
                         $('#accommodationList').append(
                             '<li class="list-groups-item" data-id="">All Accommodation</li>'
@@ -971,39 +936,24 @@
             $('#accommodationList').hide();
         });
 
-        
+
     });
 
 </script>
 
-@*<script>
-    function setHiddenFromSelect() {
-        const val = document.getElementById('RolesGroupsDropdown').value; // e.g. "5-12"
-        const [gid, sgid] = val ? val.split('-') : ['0', '0'];
-        document.getElementById('P_ReportGroupId').value = gid || 0;
-        document.getElementById('P_ReportSubGroupId').value = sgid || 0;
-    }
-
-    // on change
-    document.getElementById('RolesGroupsDropdown').addEventListener('change', setHiddenFromSelect);
-
-    // on load (agar edit form me already selected option ho)
-    document.addEventListener('DOMContentLoaded', setHiddenFromSelect);
-</script>
-*@
- <script>
+<script>
     $(document).on('click', '#accommodationList li', function () {
         const id = $(this).data('id');               // selected AccommodationId
         $('#accommodationInput').val($(this).text());
         $('#P_AccommodationId').val(id);             // <-- query param ke liye set
         //$('#accommodationList').hide();
 
-      
+
     });
 
- </script>
+</script>
 
- <script>
+<script>
     document.getElementById('exampleModal').addEventListener('show.bs.modal', function (event) {
         const button = event.relatedTarget; // jis button se modal open hua
 
@@ -1022,3 +972,4 @@
         document.getElementById('ReportSubGroupIdHidden').value = subGroupId || '';
     });
 </script>
+

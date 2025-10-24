@@ -28,6 +28,7 @@ namespace ReportsManagementSystem.Models
         public DbSet<getMapping> getMappings { get; set; }
         public DbSet<ListAccommodationMapping> listAccommodationMappings { get; set; }
         public DbSet<ReportsGroups> ReportsGroups { get; set; }
+        public DbSet<SummaryReport> summaryReports { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<BookingsData>()
@@ -48,6 +49,9 @@ namespace ReportsManagementSystem.Models
           .HasNoKey();
             modelBuilder.Entity<ListAccommodationMapping>()
             .HasNoKey();
+
+            modelBuilder.Entity<SummaryReport>()
+             .HasNoKey();
 
 
             modelBuilder.Entity<ReportsGroups>(e =>

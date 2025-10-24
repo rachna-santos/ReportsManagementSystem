@@ -14,8 +14,94 @@
 
     <style>
 
-       
-        
+    .filters-grid{
+        display:grid; grid-template-columns:repeat(2,minmax(0,1fr));
+        gap:16px; align-items:end;
+        }
+        @@media (max-width:640px){ .filters-grid{ grid-template-columns:1fr; } }
+
+        .filter-group{ width:100%; position:relative; }
+        .filter-label{ display:block; margin:0 0 .35rem; font-weight:600; }
+
+        .filter-input,
+        .form-control{
+          width:100%; box-sizing:border-box;
+          padding:.65rem .9rem; border:1px solid #ddd; border-radius:8px;
+          font-size:16px;  /* iOS zoom fix */
+          min-height:44px; /* good tap target */
+          background:#fff;
+    }
+
+    select.filter-input{
+      -webkit-appearance:none; -moz-appearance:none; appearance:none;
+      background-image:
+        linear-gradient(45deg, transparent 50%, currentColor 50%),
+        linear-gradient(135deg, currentColor 50%, transparent 50%),
+        linear-gradient(to right, #ddd, #ddd);
+      background-position: calc(100% - 18px) 50%,
+                           calc(100% - 12px) 50%,
+                           calc(100% - 2.2rem) 50%;
+      background-size: 6px 6px, 6px 6px, 1px 60%;
+      background-repeat:no-repeat;
+      padding-right:2.5rem;
+    }
+
+    /* Accommodation dropdown */
+    .accommodation-wrap{ overflow:visible; }
+    .custom-dropdown{
+      position:absolute; top:100%; left:0; right:0;
+      max-height:220px; overflow:auto; z-index:9999;
+      background:#fff; border:1px solid #e5e5e5; border-radius:8px; margin-top:6px;
+    }
+
+   
+        /*/*/
+
+        .spinner {
+            margin: 0 auto 20px auto;
+            border: 8px solid #f3f3f3; /* Light gray */
+            border-top: 8px solid #0B60B0; /* Blue */
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            }
+
+            @@keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+
+        .header {
+            position: relative; /* important */
+        }
+
+        .topbar {
+            position: absolute;
+            top: 12px;
+            right: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 5;
+        }
+
+        .logout-button {
+            background: #dc3545;
+            color: #fff;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background .2s ease;
+        }
+
+            .logout-button:hover {
+                background: #b02a37;
+            }
+
+    
         .back-button {
             background: #007bff;
             color: white;
@@ -541,19 +627,47 @@
 
 
         <div class="container">
-                <div class="header">
-                <h4>@ViewBag.User</h4>
+          <div class="header">
+            @*  yehcommentkrna*@
+            <div class="topbar">
+                <span class="user-pill">@ViewBag.User</span>
+                <form asp-controller="Account" asp-action="Logout" method="post">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="logout-button">Logout</button>
+                </form>
+            </div>
+           <h1>Booking Data Export</h1>
+            <p>Download historical booking data with advanced filtering and export options</p>
+        </div>
+
+               @* <h4>@ViewBag.User</h4>
                     <h1>Booking Data Export</h1>
-                    <p>Download historical booking data with advanced filtering and export options</p>
+                    <p>Download historical booking data with advanced filtering and export options</p>*@
                 </div>
 
                 <div class="content">
-
                     <a href="@Url.Action("Index","Home")" class="back-button" style="color:white;">← Back to Main Dashboard</a>
 
                     <div class="filters-section">
                         <div class="filters-title">Filter Booking Data</div>
                         <form method="get" asp-action="BookingData" asp-controller="Home">
+
+                        <div id="loader" style="display:none;
+                                position:fixed;
+                                top:0; left:0;
+                                width:100%; height:100%;
+                                background:rgba(255,255,255,0.8);
+                                z-index:9999;
+                                text-align:center;
+                                padding-top:200px;
+                                font-size:20px;
+                                color:#0B60B0;">
+
+                            <!-- CSS Spinner -->
+                            <div class="spinner"></div>
+                            <div>⏳ Loading... Please wait</div>
+                        </div>
+
                             <div class="filters-grid">
 
                                     <div class="filter-group">
@@ -561,7 +675,7 @@
                                     <select class="filter-input" name="p_ReportGroupId" id="RolesGroupsDropdown">
 
                                         <option value="" select="@(isGroupAllSelected ? "selected" : null)">---SelectGroup---</option>
-
+                                       
                                         @if (ViewBag.groups != null)
                                         {
                                             foreach (var item in ViewBag.groups)
@@ -575,12 +689,12 @@
                                     </select>
 
                                 </div>
+
                                     <div class="filter-group">
                                     <label class="filter-label" for="p_ReportSubGroupId">SubGroupName</label>
                                     <select class="filter-input" name="p_ReportSubGroupId" id="RoleGroupCombinedDropdown">
 
-                                        <option value="" select="@(isGroupSubAllSelected ? "selected" : null)">---SelectSubGroup---</option>
-
+                                        <option value="" select="@(isGroupSubAllSelected ? "selected" : null)">---SelectSubGroup---</option>                          
                                         @if (ViewBag.subgroups != null)
                                         {
                                             foreach (var item in ViewBag.subgroups)
@@ -602,7 +716,7 @@
                                                   placeholder="Search accommodation..."
                                                   name="p_AccommodationSearch"
                                                   style="padding:10px; border: 1px solid #ddd; border-radius: 4px; transition: height 0.2s; overflow:hidden; resize: none;"
-                                        rows="1">@ViewBag.getname</textarea>
+                                                    rows="1">@ViewBag.getname</textarea>
 
                                                 <input type="hidden" id="P_AccommodationIdHidden" name="P_AccommodationId_CHAR" value="@ViewBag.AccommodationId" />
 
@@ -616,15 +730,7 @@
                                             }
 
                                         <select class="filter-input" id="ratePlan" name="searchfilter">
-                                            @if (string.IsNullOrEmpty(selectedValue))
-                                            {
-                                            <option value="" disabled selected>---All Search---</option>
-                                            }
-                                            else
-                                            {
-                                                <option value="">---All Search---</option>
-                                            }
-
+                                           
                                             @if (selectedValue == "1")
                                             {
                                                 <option value="1" selected>Create Date</option>
@@ -656,63 +762,127 @@
 
                                     <div class="filter-group">
                                         <label class="filter-label">StartDate</label>
-                                    <input type="date" class="filter-input" id="dateFrom" value="@(ViewBag.P_StartDate != null ? ((DateTime)ViewBag.P_StartDate).ToString("yyyy-MM-dd") : "")" name="P_StartDate">
+                                        <input type="date" class="filter-input" id="dateFrom"
+                                               value="@(ViewBag.P_StartDate != null
+                                    ? ((DateTime)ViewBag.P_StartDate).ToString("yyyy-MM-dd")
+                                    : DateTime.Now.ToString("yyyy-MM-dd"))"
+                                               name="P_StartDate">
                                     </div>
 
                                     <div class="filter-group">
                                         <label class="filter-label">EndDate</label>
-                                    <input type="date" class="filter-input" id="dateTo" value="@(ViewBag.P_EndDate!= null ? ((DateTime)ViewBag.P_EndDate).ToString("yyyy-MM-dd") : "")" name="P_EndDate">
+                                        <input type="date" class="filter-input" id="dateTo"
+                                               value="@(ViewBag.P_EndDate != null
+                                    ? ((DateTime)ViewBag.P_EndDate).ToString("yyyy-MM-dd")
+                                    : DateTime.Now.ToString("yyyy-MM-dd"))"
+                                               name="P_EndDate">
                                     </div>
+
+                                <div class="filter-group" style="position: relative;">
+                                <label class="filter-label">BookingStatus</label>
+
+                                <div id="bookingStatusDropdown"
+                                     class="form-control"
+                                     style="
+                                        cursor: pointer;
+                                        padding: 10px 12px;
+                                        border: 1px solid #ddd;
+                                        border-radius: 6px;
+                                        background-color: #fff;
+                                        font-size: 14px;
+                                        min-height: 40px;
+                                        overflow-x: hidden;
+                                    ">
+                                    ---All P_BookingStatus---
+                                </div>
+
+                                <input type="hidden" id="selectedBookingStatusIds" name="P_BookingStatusId_CHAR" />
+
+                                <ul id="bookingStatusList"
+                                    class="list-group shadow-sm"
+                                    style="
+                                            position: absolute;
+                                            top: 105%;
+                                            left: 0;
+                                            width: 100%;
+                                            z-index: 20;
+                                            display: none;
+                                            max-height: 220px;
+                                            overflow-y: auto;
+                                            border: 1px solid #ddd;
+                                            border-radius: 6px;
+                                            background: #fff;
+                                            padding: 6px 8px;
+                                        ">
+                                    <li class="list-group-item" style="padding: 6px 10px; border: none;">
+                                        <input type="checkbox" class="booking-status-checkbox" id="selectAllStatus">
+                                        <label for="selectAllStatus" style="margin-left: 5px;">--- All P_BookingStatus ---</label>
+                                    </li>
+
+                                    @if (ViewBag.Booking != null)
+                                    {
+                                        foreach (var item in ViewBag.Booking)
+                                        {
+                                            <li class="list-group-item" style="padding: 6px 10px; border: none;">
+                                                <input type="checkbox" class="booking-status-checkbox" value="@item.BookingStatusId" id="status_@item.BookingStatusId">
+                                                <label for="status_@item.BookingStatusId" style="margin-left: 5px;">@item.BookingStatus</label>
+                                            </li>
+                                        }
+                                    }
+                                </ul>
+                    </div>
+
+
+                                  
                          
-                                   <div class="filter-group">
-                                       <label class="filter-label">BookingStatus</label>
-                                    <select class="filter-input" id="bookingStatus" name="P_BookingStatusId">
-                                        @{
-                                            bool isAllSelected = ViewBag.selectedBookingStatusId == null || (int?)ViewBag.selectedBookingStatusId == 0;
-                                        }
-                                        <option value="" selected="@(isAllSelected ? "selected" : null)">---All P_BookingStatus---</option>
-
-                                        @if (ViewBag.Booking != null)
-                                        {
-                                            foreach (var item in ViewBag.Booking)
-                                            {
-                                                <option value="@item.BookingStatusId"
-                                                        selected="@(item.BookingStatusId == (ViewBag.selectedBookingStatusId as int?) ? "selected" : null)">
-                                                    @item.BookingStatus
-                                                </option>
+                                 @*  <div class="filter-group">
+                                           <label class="filter-label">BookingStatus</label>
+                                        <select class="filter-input" id="bookingStatus" name="P_BookingStatusId">
+                                            @{
+                                                bool isAllSelected = ViewBag.selectedBookingStatusId == null || (int?)ViewBag.selectedBookingStatusId == 0;
                                             }
-                                        }
-                                    </select>
-                                </div>
+                                            <option value="" selected="@(isAllSelected ? "selected" : null)">---All P_BookingStatus---</option>
 
-                                   <div class="filter-group">
-                                    <label class="filter-label">Booking Source</label>
-                                    <select class="filter-input" id="bookingSource" name="P_BookingSource">
-                                        @{
-                                            bool isAllSelecteds = string.IsNullOrEmpty(ViewBag.BookingSources as string);
-                                        }
-                                        <option value="" selected="@(isAllSelecteds ? "selected" : null)">---All Sources---</option>
-
-                                        @if (ViewBag.BookingSource != null)
-                                        {
-                                            foreach (var item in ViewBag.BookingSource)
+                                            @if (ViewBag.Booking != null)
                                             {
-                                                <option value="@item.BookingSource"
-                                                        selected="@(item.BookingSource == (string)ViewBag.BookingSources ? "selected" : null)">
-                                                    @item.BookingSource
-                                                </option>
+                                                foreach (var item in ViewBag.Booking)
+                                                {
+                                                    <option value="@item.BookingStatusId"
+                                                            selected="@(item.BookingStatusId == (ViewBag.selectedBookingStatusId as int?) ? "selected" : null)">
+                                                        @item.BookingStatus
+                                                    </option>
+                                                }
                                             }
-                                        }
-                                    </select>
-                                </div>
+                                        </select>
+                                    </div>*@
+
+                                     <div class="filter-group">
+                                        <label class="filter-label">Booking Source</label>
+                                        <select class="filter-input" id="bookingSource" name="P_BookingSource">
+                                            @{
+                                                bool isAllSelecteds = string.IsNullOrEmpty(ViewBag.BookingSources as string);
+                                            }
+                                            <option value="" selected="@(isAllSelecteds ? "selected" : null)">---All Sources---</option>
+
+                                            @if (ViewBag.BookingSource != null)
+                                            {
+                                                foreach (var item in ViewBag.BookingSource)
+                                                {
+                                                    <option value="@item.BookingSource"
+                                                            selected="@(item.BookingSource == (string)ViewBag.BookingSources ? "selected" : null)">
+                                                        @item.BookingSource
+                                                    </option>
+                                                }
+                                            }
+                                        </select>
+                                    </div>
                             </div>
 
                             <div class="filter-actions">
-                                <button class="filter-button primary" onclick="applyFilters()">Apply Filters</button>
+                                <button class="filter-button primary" onclick="return applyFilters(event)">Apply Filters</button>
                                 <button class="filter-button secondary" onclick="clearFilters()">Clear All</button>
                             </div>
                         </form>
-
                     </div>
 
                     <div class="export-section">
@@ -740,7 +910,7 @@
                                     <div class="stat-value">@ViewBag.TotalRevenue</div>
                                     <div class="stat-label">Total Revenue</div>
                                 </div>
-                                <div class="summary-stat">
+                               <div class="summary-stat">
                                 <div class="stat-value">@ViewBag.Average</div>
                                     <div class="stat-label">Average Rate</div>
                                 </div>
@@ -753,14 +923,20 @@
                                     <div class="stat-label">Total Nights</div>
                                 </div>
 
+
+                                @*<div class="summary-stat">
+                                <div class="stat-value">@ViewBag.TotalCommision</div>
+                                    <div class="stat-label">Commission 11%</div>
+                                </div>*@
+
                             </div>
 
-                            <div class="pagination-info">
+                           @* <div class="pagination-info">
                                 
                                     <button class="export-button btn" style="background-color:#0B60B0" id="btnSummary">
                                             📊 Summary
                                     </button>
-                            </div>
+                            </div>*@
                     </div>
 
                     <div class="table-container">
@@ -778,10 +954,10 @@
                                 <th>Booking Date</th>
                                 <th>CheckIn-CheckOut</th>
                                 <th>PropertyName</th>
-                                <th>Room-RatePlan</th>
                                 <th>Nights</th>
                                 <th>Country</th>
                                 <th>Currency</th>
+                                <th>BookerName</th>
                                 <th>Source</th>
                                 <th>Amount</th>
                                 <th>BookingStatus</th>
@@ -799,19 +975,20 @@
                                               item.BookingStatus == "Cancelled" || item.BookingStatus == "Abandoned" ? "row-cancelled" :
                                               item.BookingStatus == "No Show" ? "row-no-show" : "")">
 
-                                        <td class="text-center">@item.BookingId</td>
-                                        <td class="text-center">@item.BookingDate.ToString("dd/MM/yyyy")</td>
-                                        <td class="text-center">@item.CheckIn.ToString("dd/MM/yyyy") - @item.CheckOut.ToString("dd/MM/yyyy")</td>
+                                            <td class="text-center">@item.BookingId</td>
+                                            <td class="text-center">@item.BookingDate.ToString("dd/MM/yyyy")</td>
+                                            <td class="text-center">@item.CheckIn.ToString("dd/MM/yyyy") - @item.CheckOut.ToString("dd/MM/yyyy")</td>
                                             <td class="text-center">@item.AccommodationName</td>
-
+@*
                                             <td class="text-center">
                                             @item.RoomName - @item.RatePlanName
-                                        </td>
+                                        </td>*@
 
-                                        <td class="text-center">@item.Nights</td>
+                                        <td class="text-center">@item.Nights2</td>
                                         <td class="text-center">@item.Country</td>
                                         <td class="text-center">@item.CurrencyName</td>
-                                            <td class="text-center">@item.Source</td>
+                                        <td class="text-center">@item.BookerName</td>
+                                        <td class="text-center">@item.Source</td>
                                         <td class="text-center">@item.Amount</td>
                                         <td class="text-center">
                                             @item.BookingStatus
@@ -823,13 +1000,10 @@
 
                     </table>               
 
-                </div>
+                    </div>
 
-                </div>
-
-        </div>
-
-   
+                    </div>
+                
     <script>
        
             function exportData(format) {
@@ -864,9 +1038,6 @@
             });
         </script>
 
-
-  
-
     </body>
 
     </html>
@@ -893,139 +1064,205 @@
 
 
     <script>
+    $(document).ready(function () {
+        let selectedAccommodations = {}; // { id: name }
+        let searchTimer = null;
+        let isProgrammaticUpdate = false; // input handler ko skip karne ke liye
 
-        $(document).ready(function () {
-            let selectedAccommodations = {}; // { id: name }
-            let searchTimer = null;
-            let isProgrammaticUpdate = false; // input handler ko skip karne ke liye
+        // Load existing selections from hidden input
+        const preselectedIds = $('#P_AccommodationIdHidden').val();
+        const preselectedNames = $('#accommodationInput').val();
 
-            // Load existing selections from hidden input
-            const preselectedIds = $('#P_AccommodationIdHidden').val();
-            const preselectedNames = $('#accommodationInput').val();
+        if (preselectedIds && preselectedNames) {
+            const ids = preselectedIds.split(',');
+            const names = preselectedNames.split(',');
+            ids.forEach((id, index) => {
+                const k = (id || '').trim();
+                const v = (names[index] || '').trim();
+                if (k && v) selectedAccommodations[k] = v;
+            });
+        }
 
-            if (preselectedIds && preselectedNames) {
-                const ids = preselectedIds.split(',');
-                const names = preselectedNames.split(',');
-                ids.forEach((id, index) => {
-                    const k = (id || '').trim();
-                    const v = (names[index] || '').trim();
-                    if (k && v) selectedAccommodations[k] = v;
-                });
+        // Debounced search on input
+        $('#accommodationInput').on('input', function () {
+            if (isProgrammaticUpdate) return; // programmatic set par search mat chalao
+
+            const inputText = $(this).val();
+
+            // ✅ NEW: agar input empty hai to sab clear kar do
+            if (inputText.trim() === "") {
+                selectedAccommodations = {};
+                $('#P_AccommodationIdHidden').val("");
+                $('#accommodationList').hide();
+                return; // aage search mat karo
             }
 
-            // Debounced search on input
-            $('#accommodationInput').on('input', function () {
-                if (isProgrammaticUpdate) return; // programmatic set par search mat chalao
+            const query = inputText.split(',').pop().trim(); // last token
 
-                const inputText = $(this).val();
+            clearTimeout(searchTimer);
 
-                // ✅ NEW: agar input empty hai to sab clear kar do
-                if (inputText.trim() === "") {
-                    selectedAccommodations = {};
-                    $('#P_AccommodationIdHidden').val("");
-                    $('#accommodationList').hide();
-                    return; // aage search mat karo
-                }
+            searchTimer = setTimeout(() => {
+                $.ajax({
+                    url: '/Home/BookingData',
+                    type: 'GET',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    data: {
+                        p_AccommodationSearch: query,
+                        p_ReportGroupId: $('#RolesGroupsDropdown').val() || 0,      // ✅ Group filter
+                        p_ReportSubGroupId: $('#RoleGroupCombinedDropdown').val() || 0 // ✅ SubGroup filter
+                    },
+                    success: function (response) {
+                        const $list = $('#accommodationList');
+                        $list.empty().show();
 
-                const query = inputText.split(',').pop().trim(); // last token
+                        if (Array.isArray(response) && response.length > 0) {
+                            response.forEach(item => {
+                                const id = item.accommodationId || item.id || '';
+                                const name = item.accommodationIdName || item.name || '';
+                                if (!id || !name) return;
 
-                clearTimeout(searchTimer);
-
-                //if (query.length < 2) {
-                //    $('#accommodationList').hide();
-                //    return;
-                //}
-
-                searchTimer = setTimeout(() => {
-                    $.ajax({
-                        url: '/Home/BookingData',
-                        type: 'GET',
-                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                        data: { p_AccommodationSearch: query },
-                        success: function (response) {
-                            const $list = $('#accommodationList');
-                            $list.empty().show();
-
-                            if (Array.isArray(response) && response.length > 0) {
-                                response.forEach(item => {
-                                    const id = item.accommodationId || item.id || '';
-                                    const name = item.accommodationIdName || item.name || '';
-                                    if (!id || !name) return;
-
-                                    const isChecked = selectedAccommodations[id] ? 'checked' : '';
-                                    $list.append(`
-                                    <li class="list-group-item">
-                                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-                                            <input type="checkbox" class="accommodation-checkbox"
-                                                   data-id="${id}"
-                                                   data-name="${name}"
-                                                   ${isChecked} />
-                                            <span>${name}</span>
-                                        </label>
-                                    </li>
-                                `);
-                                });
-                            } else {
-                                $list.append('<li class="list-group-item disabled">No results</li>');
-                            }
+                                const isChecked = selectedAccommodations[id] ? 'checked' : '';
+                                $list.append(`
+                                        <li class="list-group-item">
+                                            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                                                <input type="checkbox" class="accommodation-checkbox"
+                                                       data-id="${id}"
+                                                       data-name="${name}"
+                                                       ${isChecked} />
+                                                <span>${name}</span>
+                                            </label>
+                                        </li>
+                                    `);
+                            });
+                        } else {
+                            $list.append('<li class="list-group-item disabled">No results</li>');
                         }
-                    });
-                }, 250); // debounce 250ms
-            });
-
-
-            // Checkbox selection (multiple selection allowed)
-            $(document).on('change', '.accommodation-checkbox', function () {
-                const id = $(this).data('id');
-                const name = $(this).data('name');
-
-                if ($(this).is(':checked')) {
-                    selectedAccommodations[id] = name;
-                } else {
-                    delete selectedAccommodations[id];
-                }
-                updateSelectionDisplay(); // yeh ab input trigger nahi karega
-            });
-
-            function updateSelectionDisplay() {
-                const ids = Object.keys(selectedAccommodations);
-                const names = Object.values(selectedAccommodations);
-
-                $('#P_AccommodationIdHidden').val(ids.join(','));
-
-                // Programmatic set start
-                isProgrammaticUpdate = true;
-                $('#accommodationInput').val(names.join(', '));
-                isProgrammaticUpdate = false;
-                // Programmatic set end
-
-                autoResizeTextarea();
-            }
-
-            // Auto resize textarea
-            function autoResizeTextarea() {
-                const textarea = $('#accommodationInput')[0];
-                if (!textarea) return;
-                textarea.style.height = "auto";
-                textarea.style.height = (textarea.scrollHeight) + "px";
-            }
-
-            // Hide dropdown when clicked outside
-            $(document).on('click', function (e) {
-                if (!$(e.target).closest('#accommodationInput, #accommodationList').length) {
-                    $('#accommodationList').hide();
-                }
-            });
-
-            // Enter key se accidental submit roko (optional)
-            $('#accommodationInput').on('keydown', function (e) {
-                if (e.key === 'Enter') e.preventDefault();
-            });
-
-            // Initial resize
-            autoResizeTextarea();
+                    }
+                });
+            }, 250); // debounce 250ms
         });
+
+        // Checkbox selection (multiple selection allowed)
+        $(document).on('change', '.accommodation-checkbox', function () {
+            const id = $(this).data('id');
+            const name = $(this).data('name');
+
+            if ($(this).is(':checked')) {
+                selectedAccommodations[id] = name;
+            } else {
+                delete selectedAccommodations[id];
+            }
+            updateSelectionDisplay(); // yeh ab input trigger nahi karega
+        });
+
+        function updateSelectionDisplay() {
+            const ids = Object.keys(selectedAccommodations);
+            const names = Object.values(selectedAccommodations);
+
+            $('#P_AccommodationIdHidden').val(ids.join(','));
+
+            // Programmatic set start
+            isProgrammaticUpdate = true;
+            $('#accommodationInput').val(names.join(', '));
+            isProgrammaticUpdate = false;
+            // Programmatic set end
+
+            autoResizeTextarea();
+        }
+
+        // Auto resize textarea
+        function autoResizeTextarea() {
+            const textarea = $('#accommodationInput')[0];
+            if (!textarea) return;
+            textarea.style.height = "auto";
+            textarea.style.height = (textarea.scrollHeight) + "px";
+        }
+
+        // Hide dropdown when clicked outside
+        $(document).on('click', function (e) {
+            if (!$(e.target).closest('#accommodationInput, #accommodationList').length) {
+                $('#accommodationList').hide();
+            }
+        });
+
+        // Enter key se accidental submit roko (optional)
+        $('#accommodationInput').on('keydown', function (e) {
+            if (e.key === 'Enter') e.preventDefault();
+        });
+
+        // Initial resize
+        autoResizeTextarea();
+    });
     </script>
+
+    <script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const dropdown = document.getElementById("bookingStatusDropdown");
+        const list = document.getElementById("bookingStatusList");
+        const hiddenInput = document.getElementById("selectedBookingStatusIds");
+        const checkboxes = document.querySelectorAll(".booking-status-checkbox");
+        const selectAll = document.getElementById("selectAllStatus");
+
+        // 🟢 Toggle dropdown visibility
+        dropdown.addEventListener("click", function () {
+            list.style.display = list.style.display === "none" ? "block" : "none";
+        });
+
+        // 🟢 Handle checkbox click (update text + hidden field)
+        checkboxes.forEach(function (checkbox) {
+            checkbox.addEventListener("change", function () {
+                updateSelectedStatus();
+            });
+        });
+
+        // 🟢 Handle "Select All"
+        selectAll.addEventListener("change", function () {
+            const allChecked = selectAll.checked;
+            checkboxes.forEach(cb => {
+                if (cb !== selectAll) cb.checked = allChecked;
+            });
+            updateSelectedStatus();
+        });
+
+        // 🟢 Function to update dropdown text + hidden field
+        function updateSelectedStatus() {
+            const selected = [];
+            const selectedNames = [];
+
+            checkboxes.forEach(function (cb) {
+                if (cb.checked && cb.id !== "selectAllStatus") {
+                    selected.push(cb.value);
+                    const label = document.querySelector("label[for='" + cb.id + "']");
+                    if (label) selectedNames.push(label.textContent);
+                }
+            });
+
+            hiddenInput.value = selected.join(",");
+            dropdown.textContent = selectedNames.length > 0
+                ? selectedNames.join(", ")
+                : "---All P_BookingStatus---";
+        }
+
+        // 🟢 Set preselected values from backend (ViewBag)
+        const selectedIds = "@ViewBag.selectedBookingStatusId"; // e.g. "1,2,3"
+        if (selectedIds) {
+            selectedIds.split(",").forEach(function (id) {
+                const checkbox = document.getElementById("status_" + id.trim());
+                if (checkbox) {
+                    checkbox.checked = true;
+                }
+            });
+            updateSelectedStatus();
+        }
+
+        // 🟢 Close dropdown if clicked outside
+        document.addEventListener("click", function (event) {
+            if (!dropdown.contains(event.target) && !list.contains(event.target)) {
+                list.style.display = "none";
+            }
+        });
+    });
+</script>
 
     <script>
             function autoResizeTextarea(textarea) {
@@ -1067,25 +1304,43 @@
             });
     </script>
 
-    <script>
-        $(function () {
-            $('#myTable').DataTable({
-                pageLength: 10,
-                order: [[1, 'desc']],
-                responsive: true,
-                deferRender: true,
-
-                // HIDE THESE:
-                searching: false,      // no search box
-                lengthChange: false,   // no "Show entries"
-
-                // layout: table + info + pagination at bottom only
-                dom: 't<"dt-bottom"ip>',
-                // agar info line bhi nahi chahiye:
-                // info: false, dom: 'tp'
-            });
+   <script>
+    $(function () {
+        const dt = $('#myTable').DataTable({
+            pageLength: 10,
+            order: [[1, 'desc']],
+            responsive: true,
+            deferRender: true,
+            searching: true,
+            lengthChange: false,
+            dom: 't<"dt-bottom"ip>'
         });
-    </script>
+
+        function resetSearch() {
+            dt.search('');
+            dt.columns().search('');
+            dt.draw();
+        }
+
+        // space-only input => reset
+        $(document).on('input change', '#searchInput', function () {
+            const raw = this.value || '';
+            const val = raw.replace(/\u00A0/g, ' ').trim(); // NBSP → space, then trim
+
+            if (val.length === 0) {
+                resetSearch();           // show all rows
+            } else {
+                dt.search(val).draw();   // normal filter
+            }
+        });
+
+        // optional: Enter se form submit na ho
+        $('#searchInput').on('keydown', function (e) {
+            if (e.key === 'Enter') e.preventDefault();
+            if (e.key === 'Escape') { this.value = ''; resetSearch(); } // Esc to clear
+        });
+    });
+</script>
 
     <script>
         // Helper: visible/filtered rows ke DOM se plain text nikalo (no <span>)
@@ -1154,7 +1409,8 @@
         });
     </script>
 
-    <script>
+@*    <script>
+
         document.addEventListener('click', (e) => {
         const btn = e.target.closest('#btnSummary');
         if (!btn) return;
@@ -1189,256 +1445,49 @@
         window.open(baseUrl + '?' + p.toString(), '_blank');
     });
     </script>
-
-
-
- @* <script>
-
-       document.addEventListener('click', (e) => {
-            if (e.target.closest('#btnSummary')) {
-                e.preventDefault();
-                exportSummaryToPdf();
-            }
-            if (e.target.closest('#btnCsv')) {
-                e.preventDefault();
-                exportSummaryToCsv();
-            }
-       });
-
-        /* ---------- Common data builders ---------- */
-        function __getRowsFromServer() {
-            const rows = @Html.Raw(ViewBag.PdfRowsJson ?? "[]");
-            const num = v => Number(String(v ?? 0).replace(/[, ]/g, ''));
-            const singleFallback = {
-                accommodationName: '@(ViewBag.AccommodationName ?? "—")',
-                bookingDates: '@(ViewBag.BookingDateText ?? "—")',
-                totalBookings: num('@ViewBag.Bookings'),
-                totalRevenue: num('@ViewBag.Revenues'),
-                averageRate: num('@ViewBag.Averages'),
-                averageBookingRate: num('@ViewBag.BookingRate'),
-                totalNights: num('@ViewBag.night')
-            };
-            return (Array.isArray(rows) && rows.length > 0) ? rows : [singleFallback];
-        }
-        function __getOverall(rows) {
-            const s = rows.reduce((a, r) => {
-                const b = +r.totalBookings || 0, rev = +r.totalRevenue || 0, n = +r.totalNights || 0;
-                a.b += b; a.rev += rev; a.n += n;
-                a.wAdr += (+r.averageRate || 0) * n;
-                a.wAbr += (+r.averageBookingRate || 0) * b;
-                return a;
-            }, { b: 0, rev: 0, n: 0, wAdr: 0, wAbr: 0 });
-            return {
-                totalBookings: s.b,
-                totalRevenue: s.rev,
-                averageRate: s.n ? s.wAdr / s.n : 0,
-                averageBookingRate: s.b ? s.wAbr / s.b : 0,
-                totalNights: s.n
-            };
-        }
-
-        /* ================= PDF ================= */
-        
-        async function exportSummaryToPdf() {
-        const { jsPDF } = window.jspdf || {};
-        if (!jsPDF) { alert('jsPDF not loaded'); return; }
-
-        const rows = __getRowsFromServer();
-        const overall = __getOverall(rows);
-
-        const pdf = new jsPDF('l', 'pt', 'a4');
-        const pageW = pdf.internal.pageSize.getWidth();
-        const pageH = pdf.internal.pageSize.getHeight();
-
-        // Theme + layout
-        const ACCENT = [21, 101, 216], BORDER = [229, 231, 235], MUTED = [107, 114, 128];
-        const pageMargin = 36, cardPad = 18;
-
-        // Rounded white card
-        const cardX = pageMargin, cardY = pageMargin;
-        const cardW = pageW - pageMargin * 2, cardH = pageH - pageMargin * 2;
-        pdf.setDrawColor(...BORDER); pdf.setFillColor(255, 255, 255);
-        pdf.roundedRect(cardX, cardY, cardW, cardH, 16, 16, 'FD');
-
-        const left = cardX + cardPad;
-        const right = cardX + cardW - cardPad;
-        const contentW = cardW - cardPad * 2;
-        let y = cardY + cardPad;
-
-        /* ============== HEADER (single row) ============== */
-        const headerTop = y;
-        const headerRowH = 72;
-        const gap = 12;
-
-        // Logo
-        let logoW = 150, logoH = 44;
-        try {
-            const img = new Image();
-            img.src = '@Url.Content("~/images/bookingWhizzlogo.png")';
-            await img.decode();
-            logoH = Math.round(logoW * ((img.height || 40) / (img.width || 140)));
-            const logoY = headerTop + Math.round((headerRowH - logoH) / 2);
-            pdf.addImage(img, 'PNG', left, logoY, logoW, logoH);
-        } catch { }
-
-        // Title + strapline
-        const titleX = left + logoW + gap;
-        const titleY = headerTop + 34;
-        pdf.setTextColor(0);
-        pdf.setFont('helvetica', 'bold'); pdf.setFontSize(18);
-        pdf.text('Booking Data — Summary', titleX, titleY);
-        pdf.setFont('helvetica', 'normal'); pdf.setFontSize(10); pdf.setTextColor(100);
-        pdf.text('Automate. Personalize. Convert.', titleX, titleY + 16);
-
-        // Buttons (right side)
-        pdf.setFont('helvetica', 'normal'); pdf.setFontSize(10); pdf.setTextColor(17, 24, 39);
-        const btnH = 28, btnR = 12, btnGap = 10;
-        const wCsv = Math.ceil(pdf.getTextWidth('Export CSV') + 22);
-        const wPri = Math.ceil(pdf.getTextWidth('Download / Print') + 24);
-        const btnPriX = right - wPri;
-        const btnCsvX = btnPriX - btnGap - wCsv;
-        const btnY = headerTop + Math.round((headerRowH - btnH) / 2);
-
-
-        // CSV (outline)
-        pdf.setDrawColor(...BORDER); pdf.setFillColor(255, 255, 255);
-        pdf.roundedRect(btnCsvX, btnY, wCsv, btnH, btnR, btnR, 'FD');
-        pdf.text('Export CSV', btnCsvX + wCsv / 2, btnY + 18, { align: 'center' });
-
-        // Download / Print (primary)
-        pdf.setDrawColor(...ACCENT); pdf.setFillColor(...ACCENT);
-        pdf.roundedRect(btnPriX, btnY, wPri, btnH, btnR, btnR, 'FD');
-        pdf.setTextColor(255, 255, 255);
-        pdf.text('Download / Print', btnPriX + wPri / 2, btnY + 18, { align: 'center' });
-
-
-        // ---- clickable pills inside the PDF (optional but kept) ----
-        const csvHeader = ['Accommodation', 'Booking Date', 'Total Bookings', 'Total Revenue', 'Average Rate', 'Average Booking Rate', 'Total Nights'];
-        const toCsvLine = (arr) => arr.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',');
-        const csvLines = rows.map(r => toCsvLine([r.accommodationName, r.bookingDates, r.totalBookings, r.totalRevenue, r.averageRate, r.averageBookingRate, r.totalNights]));
-        const csvDataUri = 'data:text/csv;charset=utf-8,' + encodeURIComponent([toCsvLine(csvHeader), ...csvLines].join('\n'));
-        pdf.link(btnCsvX, btnY, wCsv, btnH, { url: csvDataUri });
-        pdf.addJS('this.print(true);');
-        pdf.link(btnPriX, btnY, wPri, btnH, { url: 'javascript:print()' });
-
-        // Dates — EXTRA GAP after "Summary" (now below strapline)  ⬅️
-        const genTxt = 'Generated: ' + new Date().toLocaleString();
-        const periodTxt = 'Report Period: ' + (rows[0]?.bookingDates || '—');
-        const datesRight = btnCsvX - 14;
-        const datesTop = titleY + 24;          // was +10 → more space  ⬅️
-        pdf.setFont('helvetica', 'normal'); pdf.setFontSize(10); pdf.setTextColor(...MUTED);
-        pdf.text(genTxt, datesRight, datesTop, { align: 'right' });
-        pdf.text(periodTxt, datesRight, datesTop + 14, { align: 'right' });
-
-        // Divider just below dates
-        let dividerY = datesTop + 20;
-        pdf.setDrawColor(...ACCENT);
-        pdf.setLineWidth(1.2);
-        pdf.line(left, dividerY, right, dividerY);
-
-        // Space before tiles
-        y = dividerY + 24;
-
-        /* ============== OVERALL TILES ============== */
-        pdf.setFont('helvetica', 'bold'); pdf.setFontSize(12); pdf.setTextColor(0);
-        pdf.text('Overall Totals', left, y); y += 16;
-
-        const fmtInt = n => Number(n || 0).toLocaleString();
-        const fmt2 = n => Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-        const GAP = 12;
-        const cardW5 = Math.floor((contentW - 4 * GAP) / 5);
-        const cardH5 = 84;
-
-        const cards = [
-            { label: 'Total Bookings', value: fmtInt(overall.totalBookings) },
-            { label: 'Total Revenue', value: fmt2(overall.totalRevenue) },
-            { label: 'Overall Avg Rate', value: fmt2(overall.averageRate) },
-            { label: 'Overall Avg Booking Rate', value: fmt2(overall.averageBookingRate) },
-            { label: 'Total Nights', value: fmtInt(overall.totalNights) }
-        ];
-
-        const drawCard = (x, y, w, h) => {
-            pdf.setFillColor(235, 240, 248); pdf.roundedRect(x, y + 4, w, h, 10, 10, 'F');
-            pdf.setFillColor(255, 255, 255); pdf.setDrawColor(240); pdf.roundedRect(x, y, w, h, 10, 10, 'FD');
-        };
-
-        for (let i = 0; i < cards.length; i++) {
-            const cx = left + i * (cardW5 + GAP);
-            drawCard(cx, y, cardW5, cardH5);
-            pdf.setTextColor(100); pdf.setFont('helvetica', 'normal'); pdf.setFontSize(10);
-            pdf.text(cards[i].label, cx + cardW5 / 2, y + 26, { align: 'center' });
-            pdf.setTextColor(0); pdf.setFont('helvetica', 'bold'); pdf.setFontSize(16);
-            pdf.text(String(cards[i].value), cx + cardW5 / 2, y + 54, { align: 'center' });
-        }
-        y += cardH5 + 34;
-
-        /* ============== TABLE ============== */
-        pdf.setFont('helvetica', 'bold'); pdf.setFontSize(12); pdf.setTextColor(0);
-        pdf.text('By Accommodation', left, y); y += 26;
-
-        const colW = { a: 179, b: 128, c: 68, d: 102, e: 81, f: 115, g: 60 };
-
-        pdf.autoTable({
-            startY: y,
-            margin: { left, right: left },
-            tableWidth: contentW,
-            theme: 'plain',                     // no default borders  ⬅️
-            styles: {
-                font: 'helvetica',
-                fontSize: 9,
-                cellPadding: { top: 12, right: 12, bottom: 12, left: 12 },
-                overflow: 'linebreak',
-                valign: 'middle',
-                lineWidth: 0                      // remove lines  ⬅️
-            },
-            headStyles: {
-                fillColor: ACCENT,
-                textColor: 255,
-                halign: 'center',
-                fontStyle: 'bold',
-                lineWidth: 0                      // no header borders  ⬅️
-            },
-            alternateRowStyles: { fillColor: [248, 250, 255] },
-            columnStyles: {
-                0: { cellWidth: colW.a, halign: 'left' },
-                1: { cellWidth: colW.b, halign: 'center' },
-                2: { cellWidth: colW.c, halign: 'right' },
-                3: { cellWidth: colW.d, halign: 'right' },
-                4: { cellWidth: colW.e, halign: 'right' },
-                5: { cellWidth: colW.f, halign: 'right' },
-                6: { cellWidth: colW.g, halign: 'right' }
-            },
-            head: [[
-                'Accommodation', 'Booking Date', 'Total Bookings',
-                'Total Revenue', 'Average Rate', 'Average Booking Rate', 'Total Nights'
-            ]],
-            body: rows.map(r => [
-                r.accommodationName,
-                r.bookingDates,
-                fmtInt(r.totalBookings),
-                fmt2(r.totalRevenue),
-                fmt2(r.averageRate),
-                fmt2(r.averageBookingRate),
-                fmtInt(r.totalNights)
-            ]),
-            // Make "Accommodation" (col 0) bold only in body  ⬅️
-            didParseCell: (data) => {
-                if (data.section === 'body' && data.column.index === 0) {
-                    data.cell.styles.fontStyle = 'bold';
-                }
-            },
-            didDrawPage: () => {
-                const txt = 'Page ' + pdf.internal.getNumberOfPages();
-                pdf.setFontSize(9);
-                pdf.text('© BookingWhizz', left, cardY + cardH - 12);
-                pdf.text(txt, cardX + cardW - cardPad, cardY + cardH - 12, { align: 'right' });
-            }
-        });
-
-        // Save file
-        pdf.save('Booking_Summary.pdf');
-
+*@
+    <script>
+    function applyFilters(e) {
+        document.getElementById("loader").style.display = "block"; // Show loader
+        document.getElementById("filtersForm").submit(); // Submit form
     }
-</script>*@
 
+    function clearFilters() {
+        document.getElementById("filtersForm").reset();
+    }
+</script>
+@*
+    @section Scripts {
+        <script>
+            $(function () {
+                function fillSubGroups(groupId, preselectId) {
+                    const $sub = $("#RoleGroupCombinedDropdown");
+                    $sub.empty().append('<option value="">---SelectSubGroup---</option>');
+                    if (!groupId) return;
+
+                    $.get('@Url.Action("GetSubGroups","Home")', { groupId })
+                        .done(function (list) {
+                            $.each(list, function (_, item) {
+                                const opt = $('<option/>', { value: item.value || item.Value, text: item.text || item.Text });
+                                if (preselectId && (item.Value == preselectId || item.value == preselectId)) opt.attr('selected', 'selected');
+                                $sub.append(opt);
+                            });
+                        });
+                }
+
+                $("#RolesGroupsDropdown").on("change", function () {
+                    fillSubGroups($(this).val(), null);
+                });
+
+                // Page load pe prefill (agar edit form hai)
+                const selectedGroup = $("#RolesGroupsDropdown").val();
+                const preselectSub = "@(ViewBag.p_ReportSubGroupId as int?)";
+                if (selectedGroup) fillSubGroups(selectedGroup, preselectSub);
+            });
+        </script>
+    }
+*@
+
+
+
+    

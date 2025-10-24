@@ -1,18 +1,19 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ReportsManagementSystem.Models;
+using System.Threading.Tasks;
 
 namespace ReportsManagementSystem.Controllers
 {
     public class AccountController : Controller
     {
         private readonly MyDbContext _context;
-
         public AccountController(MyDbContext context)
         {
-            _context= context;
+            _context = context;
+           
         }
-
         public IActionResult Index()
         {
             return View();
@@ -76,8 +77,19 @@ namespace ReportsManagementSystem.Controllers
             return RedirectToAction("Index", "Home");
 
         }
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult Logout()
+        {
+            // jitni bhi session keys set ki thi, sab clear
+            HttpContext.Session.Clear();
 
+            // (optional) session cookie bhi force-delete karna ho:
+            Response.Cookies.Delete(".AspNetCore.Session");
 
+            return RedirectToAction("Login", "Account");
+        }
     }
+
 }
 

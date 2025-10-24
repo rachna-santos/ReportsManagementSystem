@@ -6,6 +6,7 @@
     <link rel="icon" href="/favicon-32x32.png">
 </head>
 <body>
+
     <header>
        @* <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
             <div class="container-fluid">
@@ -28,15 +29,19 @@
         </nav>*@
     </header>
 
-            @RenderBody()
+      @RenderBody()
  
 
- @*   <footer class="border-top footer text-muted">
+     @*<footer class="border-top footer text-muted">
         <div class="container">
             &copy; 2025 - ReportsManagementSystem - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
         </div>
     </footer>*@
+
     @RenderSection("Scripts", required: false)
 
 </body>
 </html>
+
+
+ 

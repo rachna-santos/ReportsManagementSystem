@@ -12,6 +12,36 @@
 
     <style>
 
+        .header {
+            position: relative; /* important */
+        }
+
+        .topbar {
+            position: absolute;
+            top: 12px;
+            right: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 5;
+        }
+
+        .logout-button {
+            background: #dc3545;
+            color: #fff;
+            border: none;
+            padding: 5px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background .2s ease;
+        }
+
+            .logout-button:hover {
+                background: #b02a37;
+            }
+
+
         #myTable tbody td {
             vertical-align: middle;
             left: 50%;
@@ -789,7 +819,14 @@
 
     <div class="container">
         <div class="header">
-            <h4>@ViewBag.User</h4>
+            <div class="topbar">
+                <span class="user-pill">@ViewBag.User</span>
+                <form asp-controller="Account" asp-action="Logout" method="post">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="logout-button">Logout</button>
+                </form>
+            </div>
+           @* <h4>@ViewBag.User</h4>*@
             <h1>Create SubGroup</h1>
         </div>
 
